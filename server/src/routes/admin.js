@@ -38,6 +38,20 @@ adminRouter.delete('/keys/:key', requireAdmin, (req, res) => {
   res.json({ success });
 });
 
+// GET /api/admin/export
+adminRouter.get('/export', requireAdmin, (req, res) => {
+  const data = keyService.getFullData();
+  res.json(data);
+});
+
+// POST /api/admin/import
+adminRouter.post('/import', requireAdmin, (req, res) => {
+  const { data } = req.body;
+  if (!data) return res.status(400).json({ error: 'Data payload required' });
+  const success = keyService.importFullData(data);
+  res.json({ success });
+});
+
 // GET /api/admin/bans
 adminRouter.get('/bans', requireAdmin, (req, res) => {
   const bans = keyService.getBannedUsers();
