@@ -74,30 +74,7 @@ guildsRouter.get('/', async (req, res) => {
     channelsCount: bg.channels.cache.size,
   }));
 
-  // Demo fallback guilds if bot has no guilds connected yet
-  if (mutualGuilds.length === 0) {
-    mutualGuilds.push(
-      {
-        id: '111111111111111111',
-        name: 'Hyperion Gaming Lounge [Source]',
-        icon: null,
-        memberCount: 1420,
-        botPresent: true,
-        rolesCount: 18,
-        channelsCount: 34,
-      },
-      {
-        id: '222222222222222222',
-        name: 'Community Backup [Target]',
-        icon: null,
-        memberCount: 5,
-        botPresent: true,
-        rolesCount: 3,
-        channelsCount: 4,
-      }
-    );
-  }
-
+  // Return only real live guilds from bot cache
   res.json({
     mutualGuilds,
     nonBotGuilds: [],
@@ -111,59 +88,7 @@ guildsRouter.get('/:id/details', async (req, res) => {
   const guild = getGuild(id);
 
   if (!guild) {
-    // If demo guild
-    if (id === '111111111111111111' || id === '222222222222222222') {
-      return res.json({
-        id,
-        name: id === '111111111111111111' ? 'Hyperion Gaming Lounge [Source]' : 'Community Backup [Target]',
-        icon: null,
-        banner: null,
-        description: 'Demo server environment for previewing features.',
-        memberCount: id === '111111111111111111' ? 1420 : 5,
-        verificationLevel: 1,
-        roles: [
-          { id: '101', name: '👑 Owner', color: '#ff0055', position: 10 },
-          { id: '102', name: '🛡️ Admin', color: '#3b82f6', position: 9 },
-          { id: '103', name: '⚔️ Moderator', color: '#10b981', position: 8 },
-          { id: '104', name: '⭐ VIP', color: '#f59e0b', position: 7 },
-          { id: '105', name: '🎮 Member', color: '#8b5cf6', position: 6 },
-        ],
-        categories: [
-          {
-            id: 'c1',
-            name: 'INFORMATION',
-            position: 0,
-            channels: [
-              { id: 'ch1', name: 'rules-and-info', type: ChannelType.GuildText },
-              { id: 'ch2', name: 'announcements', type: ChannelType.GuildAnnouncement },
-            ],
-          },
-          {
-            id: 'c2',
-            name: 'COMMUNITY CHAT',
-            position: 1,
-            channels: [
-              { id: 'ch3', name: 'general-chat', type: ChannelType.GuildText },
-              { id: 'ch4', name: 'media-and-clips', type: ChannelType.GuildText },
-              { id: 'ch5', name: 'bot-commands', type: ChannelType.GuildText },
-            ],
-          },
-          {
-            id: 'c3',
-            name: 'VOICE LOUNGES',
-            position: 2,
-            channels: [
-              { id: 'ch6', name: 'General Voice 1', type: ChannelType.GuildVoice },
-              { id: 'ch7', name: 'Gaming Duo 1', type: ChannelType.GuildVoice },
-            ],
-          },
-        ],
-        emojisCount: 32,
-        stickersCount: 8,
-      });
-    }
-
-    return res.status(404).json({ error: 'Guild not found or bot lacks access.' });
+    return res.status(404).json({ error: 'Server not found or bot is not in this server.' });
   }
 
   try {
