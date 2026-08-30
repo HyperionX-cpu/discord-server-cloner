@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { EmbedBuilder, WebhookClient } from 'discord.js';
-import axios from 'axios';
+import { EmbedBuilder } from 'discord.js';
 import { config } from '../config.js';
+import { getClient } from '../bot/client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -45,78 +45,101 @@ function buildKeysEmbed(data) {
   return embed;
 }
 
-// Push latest database embed + hidden JSON payload into Discord Webhook
+// Push latest database embed + hidden JSON payload directly into Discord Channel
 async function syncToDiscordEmbed(data) {
-  if (!config.discordWebhookUrl) return;
   try {
-    const allKeys = Object.values(data.keys || {});
-    const claimedCount = allKeys.filter(k => k.claimedBy).length;
-    const availableCount = allKeys.length - claimedCount;
-
-    let keyListText = '`No keys generated yet.`';
-    if (allKeys.length > 0) {
-      keyListText = allKeys.slice(-25).reverse().map(k => {
-        const status = k.claimedBy ? `🔒 Claimed by <@${k.claimedBy}>` : '🟢 Unclaimed';
-        const dur = k.duration === 'lifetime' ? 'Lifetime' : k.duration;
-        return `• \`${k.key}\` — **${dur}** (${status})`;
-      }).join('\n');
+    const client = getClient();
+    if (!client || !client.isReady() || !config.discordKeyChannelId) {
+      console.log('[DISCORD SYNC] Bot not ready or channel ID missing.');
+      return;
     }
 
-    const payload = {
-      username: "Veil Cloner Key System",
-      avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
-      content: `||DATABASE_STORE:${JSON.stringify(data)}:DATABASE_END||`,
-      embeds: [
-        {
-          title: "⚡ VEIL CLONER — LIVE LICENSE DATABASE",
-          color: 0x09090b,
-          description: `**Total Keys:** \`${allKeys.length}\` | **Available:** \`${availableCount}\` | **Claimed:** \`${claimedCount}\`\n*This embed automatically updates every time a key is generated, claimed, or deleted.*`,
-          fields: [
-            {
-              name: "Keys Registry",
-              value: keyListText.slice(0, 1024)
-            }
-          ],
-          timestamp: new Date().toISOString()
-        }
-      ]
-    };
+    const channel = await client.channels.fetch(config.discordKeyChannelId).catch((err) => {
+      console.error('[DISCORD SYNC ERROR] Could not fetch channel:', err.message);
+      return null;
+    });
 
+    if (!channel || !channel.isTextBased()) {
+      console.warn(`[DISCORD SYNC] Channel ${config.discordKeyChannelId} not found or is not a text channel.`);
+      return;
+    }
+
+    const jsonStr = JSON.stringify(data);
+    const embed = buildKeysEmbed(data);
+
+    // If we have a cached synced message, attempt to edit it
     if (syncedMessageId) {
       try {
-        await axios.patch(`${config.discordWebhookUrl}/messages/${syncedMessageId}`, payload);
-        console.log('✅ [DISCORD WEBHOOK] Updated live keys embed in Discord.');
-        return;
-      } catch (err) {
+        const msg = await channel.messages.fetch(syncedMessageId);
+        if (msg) {
+          await msg.edit({
+            content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
+            embeds: [embed]
+          });
+          console.log(`✅ [DISCORD BOT DB] Edited existing embed message (${syncedMessageId}).`);
+          return;
+        }
+      } catch (_) {
         syncedMessageId = null;
       }
     }
 
-    const res = await axios.post(`${config.discordWebhookUrl}?wait=true`, payload);
-    if (res.data?.id) {
-      syncedMessageId = res.data.id;
-      console.log(`✅ [DISCORD WEBHOOK] Posted new live keys embed (Message ID: ${syncedMessageId}).`);
+    // Search recent messages in the channel for previous database message
+    const messages = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+    if (messages) {
+      const existing = messages.find(m => m.author.id === client.user.id && m.content.includes('DATABASE_STORE:'));
+      if (existing) {
+        syncedMessageId = existing.id;
+        await existing.edit({
+          content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
+          embeds: [embed]
+        });
+        console.log(`✅ [DISCORD BOT DB] Found & updated existing embed in channel (${syncedMessageId}).`);
+        return;
+      }
+    }
+
+    // Send new master embed message
+    const newMsg = await channel.send({
+      content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
+      embeds: [embed]
+    });
+    syncedMessageId = newMsg.id;
+    console.log(`✅ [DISCORD BOT DB] Created new live keys embed message in channel (${syncedMessageId})!`);
+  } catch (err) {
+    console.error('❌ [DISCORD BOT DB SYNC ERROR]', err.message);
+  }
+}
+
+// Pull database from Discord channel message on boot
+export async function pullFromDiscordChannel() {
+  try {
+    const client = getClient();
+    if (!client || !client.isReady() || !config.discordKeyChannelId) return;
+
+    const channel = await client.channels.fetch(config.discordKeyChannelId).catch(() => null);
+    if (!channel || !channel.isTextBased()) return;
+
+    const messages = await channel.messages.fetch({ limit: 25 }).catch(() => null);
+    if (!messages) return;
+
+    const targetMsg = messages.find(m => m.author.id === client.user.id && m.content.includes('DATABASE_STORE:'));
+    if (targetMsg) {
+      syncedMessageId = targetMsg.id;
+      const match = targetMsg.content.match(/DATABASE_STORE:(.+):DATABASE_END/);
+      if (match && match[1]) {
+        const parsed = JSON.parse(match[1]);
+        if (parsed && typeof parsed === 'object') {
+          memoryCache = parsed;
+          fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
+          console.log(`✅ [DISCORD BOT DB] Restored ${Object.keys(parsed.keys || {}).length} keys directly from Discord Channel Embed on startup!`);
+        }
+      }
     }
   } catch (err) {
-    console.error('❌ [DISCORD WEBHOOK SYNC ERROR]', err.response?.data || err.message);
+    console.error('❌ [DISCORD BOT PULL ERROR]', err.message);
   }
 }
-
-// Pull database from Discord channel message via Webhook or local file on boot
-export async function pullFromDiscordChannel() {
-  if (fs.existsSync(DATA_FILE)) {
-    try {
-      const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-      if (parsed && typeof parsed === 'object') {
-        memoryCache = parsed;
-        console.log(`✅ [LOCAL STORE] Loaded ${Object.keys(parsed.keys || {}).length} keys from data storage.`);
-      }
-    } catch (_) {}
-  }
-}
-
-// Seed on startup
-pullFromDiscordChannel();
 
 function loadData() {
   if (memoryCache && (Object.keys(memoryCache.keys).length > 0 || Object.keys(memoryCache.users).length > 0)) {
@@ -140,7 +163,7 @@ async function saveData(data) {
     console.error('[LOCAL SAVE ERROR]', err);
   }
 
-  // Update Discord live embed via Webhook
+  // Update Discord live embed in channel
   await syncToDiscordEmbed(data);
 }
 
