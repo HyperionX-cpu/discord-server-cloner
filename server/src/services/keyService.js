@@ -306,7 +306,26 @@ export const keyService = {
       };
     }
 
-    const userEntry = data.users?.[discordId.toString()];
+    let userEntry = data.users?.[discordId.toString()];
+    
+    // Fallback: If user entry wasn't saved in data.users, look up by claimedBy in data.keys
+    if (!userEntry && data.keys) {
+      const foundKey = Object.values(data.keys).find(k => k.claimedBy === discordId.toString());
+      if (foundKey) {
+        userEntry = {
+          discordId: discordId.toString(),
+          key: foundKey.key,
+          duration: foundKey.duration,
+          claimedAt: foundKey.claimedAt,
+          expiresAt: foundKey.expiresAt
+        };
+        // Auto-heal database mapping
+        if (!data.users) data.users = {};
+        data.users[discordId.toString()] = userEntry;
+        saveData(data);
+      }
+    }
+
     if (!userEntry) {
       return { active: false, needsKey: true };
     }
