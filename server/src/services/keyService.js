@@ -52,6 +52,34 @@ async function syncToGitHub(data) {
   }
 }
 
+// Helper to pull latest keys_data.json directly from GitHub on boot
+async function pullFromGitHub() {
+  if (!config.githubToken || !config.githubRepo) return;
+  try {
+    const url = `https://api.github.com/repos/${config.githubRepo}/contents/keys_data.json`;
+    const res = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${config.githubToken}`,
+        Accept: 'application/vnd.github.v3+json',
+      },
+    });
+    if (res.data?.content) {
+      const decoded = Buffer.from(res.data.content, 'base64').toString('utf-8');
+      const parsed = JSON.parse(decoded);
+      if (parsed && typeof parsed === 'object') {
+        memoryCache = parsed;
+        fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
+        console.log('[AUTO-SYNC] Successfully pulled latest keys database from GitHub repository on startup.');
+      }
+    }
+  } catch (err) {
+    console.error('[AUTO-SYNC PULL ERROR]', err.response?.data?.message || err.message);
+  }
+}
+
+// Trigger cloud pull immediately when module loads
+pullFromGitHub();
+
 function loadData() {
   if (memoryCache) return memoryCache;
   if (!fs.existsSync(DATA_FILE)) {
@@ -156,7 +184,7 @@ export const keyService = {
     return data.keys[key];
   },
 
-  deleteKey(key) {
+  async deleteKey(key) {
     const data = loadData();
     if (data.keys?.[key]) {
       const keyObj = data.keys[key];
@@ -165,6 +193,7 @@ export const keyService = {
       }
       delete data.keys[key];
       saveData(data);
+      await syncToGitHub(data);
       return true;
     }
     return false;
@@ -230,7 +259,7 @@ export const keyService = {
     };
   },
 
-  redeemKey(discordId, username, keyInput) {
+  async redeemKey(discordId, username, keyInput) {
     const data = loadData();
     const cleanKey = keyInput.trim();
 
@@ -263,7 +292,7 @@ export const keyService = {
       expiresAt = null;
     }
 
-    // Mark key as claimed in DB
+    // Mark key as claimed and bind to this Discord ID
     keyObj.claimedBy = discordId.toString();
     keyObj.claimedUsername = username;
     keyObj.claimedAt = now.toISOString();
@@ -280,6 +309,7 @@ export const keyService = {
     };
 
     saveData(data);
+    await syncToGitHub(data);
     return { success: true, license: data.users[discordId.toString()] };
   }
 };
