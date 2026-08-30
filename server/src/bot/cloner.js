@@ -466,5 +466,7 @@ export function stopJob(jobId) {
     activeJobs.set(jobId, true);
     return true;
   }
-  return false;
+  // Even if not in active map, register cancelled token
+  activeJobs.set(jobId, true);
+  return true;
 }
