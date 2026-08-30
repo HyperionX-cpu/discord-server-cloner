@@ -118,7 +118,7 @@ export async function cloneGuild({ jobId, sourceGuildId, targetGuildId, options 
         for (const role of rolesToClone) {
           if (isCancelled()) break;
           try {
-            // Check if role icon exists (if bot guild is boosted)
+            // Check if role icon exists (if bot guild is boosted to Level 2)
             let iconBuffer = null;
             if (role.iconURL()) {
               try {
@@ -129,15 +129,32 @@ export async function cloneGuild({ jobId, sourceGuildId, targetGuildId, options 
               } catch (_) {}
             }
 
-            const newRole = await targetGuild.roles.create({
-              name: role.name,
-              color: role.color,
-              hoist: role.hoist,
-              permissions: role.permissions,
-              mentionable: role.mentionable,
-              icon: iconBuffer,
-              reason: 'Discord Cloner role recreation',
-            });
+            let newRole = null;
+            try {
+              newRole = await targetGuild.roles.create({
+                name: role.name,
+                color: role.color,
+                hoist: role.hoist,
+                permissions: role.permissions,
+                mentionable: role.mentionable,
+                icon: iconBuffer,
+                reason: 'Discord Cloner role recreation',
+              });
+            } catch (createErr) {
+              // If target server lacks Boost Level 2 for role icons, retry creating without icon
+              if (iconBuffer) {
+                newRole = await targetGuild.roles.create({
+                  name: role.name,
+                  color: role.color,
+                  hoist: role.hoist,
+                  permissions: role.permissions,
+                  mentionable: role.mentionable,
+                  reason: 'Discord Cloner role recreation (without icon)',
+                });
+              } else {
+                throw createErr;
+              }
+            }
 
             roleMapping.set(role.id, newRole.id);
             log('info', `Created role: @${role.name}`);
