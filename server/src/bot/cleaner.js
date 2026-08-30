@@ -39,36 +39,32 @@ export async function cleanTargetGuild(targetGuild, options = {}, loggerContext)
     log('info', 'Clearing existing custom roles...');
     try {
       const roles = await targetGuild.roles.fetch();
-      const botMember = await targetGuild.members.fetchMe();
-      const botHighestRolePosition = botMember.roles.highest.position;
+      let deletedCount = 0;
 
-      // Sort roles from lowest to highest position to avoid hierarchy conflicts
-      const sortedRoles = Array.from(roles.values()).sort((a, b) => a.position - b.position);
+      // Filter out @everyone and bot integration-managed roles (which Discord hard-locks)
+      const purgeableRoles = Array.from(roles.values()).filter(
+        (r) => r.name !== '@everyone' && r.id !== targetGuild.id && !r.managed
+      );
 
-      for (const role of sortedRoles) {
+      // Sort from lowest to highest position
+      purgeableRoles.sort((a, b) => a.position - b.position);
+
+      for (const role of purgeableRoles) {
         if (isCancelled && isCancelled()) {
           log('warn', 'Cleanup aborted by user.');
           return;
         }
-        if (role.name === '@everyone' || role.id === targetGuild.id) continue;
-        if (role.managed) {
-          log('info', `Skipping managed bot/integration role: @${role.name}`);
-          continue;
-        }
-        if (role.position >= botHighestRolePosition) {
-          log('warn', `Cannot delete @${role.name} (Position is above the bot's role in server settings). Make sure bot's role is at the very top!`);
-          continue;
-        }
 
         try {
           await role.delete('Cloner target server role cleanup');
+          deletedCount++;
           log('info', `Deleted role: @${role.name}`);
         } catch (err) {
-          log('warn', `Could not delete role @${role.name}: ${err.message}`);
+          log('warn', `Could not delete role @${role.name}: ${err.message} (Make sure bot's role is dragged to the top in Server Settings -> Roles)`);
         }
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 150));
       }
-      log('success', 'Custom roles purge completed.');
+      log('success', `Custom roles purge completed (${deletedCount}/${purgeableRoles.length} roles deleted).`);
     } catch (err) {
       log('error', `Failed clearing roles: ${err.message}`);
     }
