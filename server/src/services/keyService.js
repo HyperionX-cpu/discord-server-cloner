@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { EmbedBuilder, WebhookClient } from 'discord.js';
 import axios from 'axios';
 import { config } from '../config.js';
 
@@ -10,111 +11,112 @@ const DATA_FILE = path.resolve(__dirname, '../../keys_data.json');
 
 const OWNER_DISCORD_ID = "1240169071287205950";
 
-let memoryCache = null;
+let memoryCache = { keys: {}, users: {}, bannedUsers: {} };
+let syncedMessageId = null;
 
-// Helper to push keys_data.json to GitHub repository asynchronously in background
-async function syncToGitHub(data) {
-  if (!config.githubToken || !config.githubRepo) return;
-  try {
-    const jsonStr = JSON.stringify(data, null, 2);
-    const contentB64 = Buffer.from(jsonStr).toString('base64');
-    const url = `https://api.github.com/repos/${config.githubRepo}/contents/keys_data.json`;
-    
-    // Get existing sha
-    let sha = null;
-    try {
-      const getRes = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${config.githubToken}`,
-          Accept: 'application/vnd.github.v3+json',
-        },
-      });
-      sha = getRes.data?.sha;
-    } catch (_) {}
+// Build a clean embed displaying all active keys and statistics
+function buildKeysEmbed(data) {
+  const allKeys = Object.values(data.keys || {});
+  const claimedCount = allKeys.filter(k => k.claimedBy).length;
+  const availableCount = allKeys.length - claimedCount;
 
-    const payload = {
-      message: 'Auto-save keys database',
-      content: contentB64,
-      branch: 'main',
-    };
-    if (sha) payload.sha = sha;
+  const embed = new EmbedBuilder()
+    .setTitle('⚡ VEIL CLONER — LIVE LICENSE DATABASE')
+    .setColor(0x000000)
+    .setDescription(
+      `**Total Keys:** \`${allKeys.length}\` | **Available:** \`${availableCount}\` | **Claimed:** \`${claimedCount}\`\n` +
+      `*This embed automatically updates every time a key is generated, claimed, or deleted.*`
+    )
+    .setTimestamp();
 
-    await axios.put(url, payload, {
-      headers: {
-        Authorization: `Bearer ${config.githubToken}`,
-        Accept: 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json',
-      },
-    });
-    console.log('[AUTO-SYNC] Successfully synchronized keys_data.json to GitHub repository.');
-  } catch (err) {
-    console.error('[AUTO-SYNC ERROR]', err.response?.data?.message || err.message);
+  if (allKeys.length === 0) {
+    embed.addFields({ name: 'Active Keys', value: '`No keys generated yet.`' });
+  } else {
+    // Group keys preview (showing up to 25 latest)
+    const list = allKeys.slice(-25).reverse().map(k => {
+      const status = k.claimedBy ? `🔒 Claimed by <@${k.claimedBy}>` : '🟢 Unclaimed';
+      const dur = k.duration === 'lifetime' ? 'Lifetime' : k.duration;
+      return `• \`${k.key}\` — **${dur}** (${status})`;
+    }).join('\n');
+
+    embed.addFields({ name: 'Keys Registry', value: list.slice(0, 1024) || '`Empty`' });
   }
+
+  return embed;
 }
 
-// Helper to pull latest keys_data.json directly from GitHub on boot
-async function pullFromGitHub() {
-  if (!config.githubToken || !config.githubRepo) return;
+// Push latest database embed + hidden JSON payload into Discord Webhook
+async function syncToDiscordEmbed(data) {
+  if (!config.discordWebhookUrl) return;
   try {
-    const url = `https://api.github.com/repos/${config.githubRepo}/contents/keys_data.json`;
-    const res = await axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${config.githubToken}`,
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
-    if (res.data?.content) {
-      const decoded = Buffer.from(res.data.content, 'base64').toString('utf-8');
-      const parsed = JSON.parse(decoded);
-      if (parsed && typeof parsed === 'object') {
-        memoryCache = parsed;
-        fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
-        console.log('[AUTO-SYNC] Successfully pulled latest keys database from GitHub repository on startup.');
+    const webhookClient = new WebhookClient({ url: config.discordWebhookUrl });
+    const jsonStr = JSON.stringify(data);
+    const embed = buildKeysEmbed(data);
+
+    if (syncedMessageId) {
+      try {
+        await webhookClient.editMessage(syncedMessageId, {
+          content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
+          embeds: [embed]
+        });
+        console.log('✅ [DISCORD WEBHOOK] Updated live keys embed in Discord.');
+        return;
+      } catch (_) {
+        syncedMessageId = null;
       }
     }
+
+    const newMsg = await webhookClient.send({
+      content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
+      embeds: [embed]
+    });
+    syncedMessageId = newMsg.id;
+    console.log('✅ [DISCORD WEBHOOK] Sent new live keys embed via Webhook.');
   } catch (err) {
-    console.error('[AUTO-SYNC PULL ERROR]', err.response?.data?.message || err.message);
+    console.error('❌ [DISCORD WEBHOOK SYNC ERROR]', err.message);
   }
 }
 
-// Trigger cloud pull immediately when module loads
-pullFromGitHub();
+// Pull database from Discord channel message via Webhook or local file on boot
+export async function pullFromDiscordChannel() {
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+      if (parsed && typeof parsed === 'object') {
+        memoryCache = parsed;
+        console.log(`✅ [LOCAL STORE] Loaded ${Object.keys(parsed.keys || {}).length} keys from data storage.`);
+      }
+    } catch (_) {}
+  }
+}
+
+// Seed on startup
+pullFromDiscordChannel();
 
 function loadData() {
-  if (memoryCache) return memoryCache;
-  if (!fs.existsSync(DATA_FILE)) {
-    const initial = {
-      keys: {},
-      users: {},
-      bannedUsers: {},
-    };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2));
-    memoryCache = initial;
-    return initial;
-  }
-  try {
-    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-    if (parsed.keys?.["VEIL-OWNER-LIFETIME-ACCESS"]) {
-      delete parsed.keys["VEIL-OWNER-LIFETIME-ACCESS"];
-      fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
-    }
-    memoryCache = parsed;
-    return parsed;
-  } catch {
-    memoryCache = { keys: {}, users: {}, bannedUsers: {} };
+  if (memoryCache && (Object.keys(memoryCache.keys).length > 0 || Object.keys(memoryCache.users).length > 0)) {
     return memoryCache;
   }
+  if (fs.existsSync(DATA_FILE)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+      memoryCache = parsed;
+      return memoryCache;
+    } catch (_) {}
+  }
+  return memoryCache;
 }
 
-function saveData(data) {
+async function saveData(data) {
   memoryCache = data;
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
   } catch (err) {
-    console.error('[KEY STORE SAVE ERROR]', err);
+    console.error('[LOCAL SAVE ERROR]', err);
   }
-  // Automatically persist to GitHub repository so future builds have all keys intact
-  syncToGitHub(data);
+
+  // Update Discord live embed via Webhook
+  await syncToDiscordEmbed(data);
 }
 
 export function generateKeyString(prefix = 'VEIL') {
@@ -135,7 +137,7 @@ export const keyService = {
     return !!data.bannedUsers?.[discordId.toString()];
   },
 
-  banUser(discordId, reason = 'Violating terms', bannedBy = 'Admin') {
+  async banUser(discordId, reason = 'Violating terms', bannedBy = 'Admin') {
     const data = loadData();
     if (!data.bannedUsers) data.bannedUsers = {};
     data.bannedUsers[discordId.toString()] = {
@@ -144,18 +146,18 @@ export const keyService = {
       bannedBy,
       bannedAt: new Date().toISOString()
     };
-    // Invalidate user license
     if (data.users?.[discordId.toString()]) {
       delete data.users[discordId.toString()];
     }
-    saveData(data);
+    await saveData(data);
+    return true;
   },
 
-  unbanUser(discordId) {
+  async unbanUser(discordId) {
     const data = loadData();
     if (data.bannedUsers?.[discordId.toString()]) {
       delete data.bannedUsers[discordId.toString()];
-      saveData(data);
+      await saveData(data);
       return true;
     }
     return false;
@@ -172,7 +174,7 @@ export const keyService = {
     const key = generateKeyString(prefix);
     data.keys[key] = {
       key,
-      duration, // '1d', '7d', '30d', '90d', 'lifetime'
+      duration,
       createdAt: new Date().toISOString(),
       claimedBy: null,
       claimedUsername: null,
@@ -180,8 +182,7 @@ export const keyService = {
       expiresAt: null,
       note
     };
-    saveData(data);
-    await syncToGitHub(data);
+    await saveData(data);
     return data.keys[key];
   },
 
@@ -193,8 +194,7 @@ export const keyService = {
         delete data.users[keyObj.claimedBy];
       }
       delete data.keys[key];
-      saveData(data);
-      await syncToGitHub(data);
+      await saveData(data);
       return true;
     }
     return false;
@@ -209,9 +209,9 @@ export const keyService = {
     return loadData();
   },
 
-  importFullData(newData) {
+  async importFullData(newData) {
     if (newData && typeof newData === 'object') {
-      saveData(newData);
+      await saveData(newData);
       return true;
     }
     return false;
@@ -221,12 +221,10 @@ export const keyService = {
     if (!discordId) return null;
     const data = loadData();
     
-    // Check if banned
     if (data.bannedUsers?.[discordId.toString()]) {
       return { active: false, banned: true, reason: data.bannedUsers[discordId.toString()].reason };
     }
 
-    // Owner bypass
     if (this.isAdmin(discordId)) {
       return {
         active: true,
@@ -273,7 +271,6 @@ export const keyService = {
       return { success: false, error: 'Invalid license key. Please verify and try again.' };
     }
 
-    // STRICT PER-ACCOUNT LOCK: If key was claimed by someone else, reject
     if (keyObj.claimedBy && keyObj.claimedBy !== discordId.toString()) {
       return { success: false, error: 'This key has already been claimed by another Discord account.' };
     }
@@ -293,7 +290,6 @@ export const keyService = {
       expiresAt = null;
     }
 
-    // Mark key as claimed and bind to this Discord ID
     keyObj.claimedBy = discordId.toString();
     keyObj.claimedUsername = username;
     keyObj.claimedAt = now.toISOString();
@@ -309,8 +305,7 @@ export const keyService = {
       expiresAt
     };
 
-    saveData(data);
-    await syncToGitHub(data);
+    await saveData(data);
     return { success: true, license: data.users[discordId.toString()] };
   }
 };
