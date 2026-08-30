@@ -17,10 +17,10 @@ export const config = {
     botToken: process.env.DISCORD_BOT_TOKEN || '',
     clientId: process.env.DISCORD_CLIENT_ID || '',
     clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
-    redirectUri: process.env.DISCORD_REDIRECT_URI || 'http://localhost:4000/api/auth/callback',
+    redirectUri: process.env.DISCORD_REDIRECT_URI || process.env.REDIRECT_URI || 'http://localhost:4000/api/auth/callback',
     oauthUrl: process.env.DISCORD_CLIENT_ID
       ? `https://discord.com/oauth2/authorize?client_id=${process.env.DISCORD_CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(
-          process.env.DISCORD_REDIRECT_URI || 'http://localhost:4000/api/auth/callback'
+          process.env.DISCORD_REDIRECT_URI || process.env.REDIRECT_URI || 'http://localhost:4000/api/auth/callback'
         )}&scope=identify+guilds`
       : '',
     botInviteUrl: process.env.DISCORD_CLIENT_ID
