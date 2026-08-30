@@ -33,8 +33,8 @@ adminRouter.get('/keys', requireAdmin, (req, res) => {
 });
 
 // DELETE /api/admin/keys/:key
-adminRouter.delete('/keys/:key', requireAdmin, (req, res) => {
-  const success = keyService.deleteKey(req.params.key);
+adminRouter.delete('/keys/:key', requireAdmin, async (req, res) => {
+  const success = await keyService.deleteKey(req.params.key);
   res.json({ success });
 });
 
