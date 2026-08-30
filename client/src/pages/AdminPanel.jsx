@@ -177,24 +177,42 @@ export function AdminPanel() {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
+        {/* Controls */}
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setActiveTab('keys')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'keys' ? 'bg-white text-black shadow-md' : 'text-zinc-400 hover:text-white'
-            }`}
+            onClick={handleExportBackup}
+            title="Download full JSON backup of all keys, active claims, and time expirations"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-bold text-zinc-200 hover:text-white transition shadow-sm"
           >
-            Key Manager ({keys.length})
+            <Download className="w-3.5 h-3.5" />
+            <span>Export Keys</span>
           </button>
-          <button
-            onClick={() => setActiveTab('bans')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
-              activeTab === 'bans' ? 'bg-white text-black shadow-md' : 'text-zinc-400 hover:text-white'
-            }`}
-          >
-            Blacklist / Bans ({bans.length})
-          </button>
+
+          <label className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-bold text-zinc-200 hover:text-white transition shadow-sm cursor-pointer">
+            <Upload className="w-3.5 h-3.5" />
+            <span>Import Keys</span>
+            <input type="file" accept=".json" onChange={handleImportBackup} className="hidden" />
+          </label>
+
+          {/* Tabs */}
+          <div className="flex bg-zinc-900 p-1.5 rounded-2xl border border-zinc-800">
+            <button
+              onClick={() => setActiveTab('keys')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === 'keys' ? 'bg-white text-black shadow-md' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Key Manager ({keys.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('bans')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition ${
+                activeTab === 'bans' ? 'bg-white text-black shadow-md' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Blacklist / Bans ({bans.length})
+            </button>
+          </div>
         </div>
       </div>
 
