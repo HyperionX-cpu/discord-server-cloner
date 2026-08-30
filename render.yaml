@@ -1,0 +1,26 @@
+# Render Blueprint specification (https://render.com/docs/blueprint-spec)
+services:
+  - type: web
+    name: discord-cloner-app
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        # Set to https://your-service-name.onrender.com once deployed
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_CLIENT_ID
+        sync: false
+      - key: DISCORD_CLIENT_SECRET
+        sync: false
+      - key: DISCORD_REDIRECT_URI
+        # Set to https://your-service-name.onrender.com/api/auth/callback
+        sync: false
