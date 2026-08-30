@@ -1,0 +1,727 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import {
+  ArrowRight,
+  Server,
+  Layers,
+  Hash,
+  Smile,
+  MessageSquare,
+  Trash2,
+  Settings2,
+  CheckCircle,
+  AlertTriangle,
+  Play,
+  Check,
+  ChevronDown,
+  X
+} from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { CloneLogs } from '../components/CloneLogs';
+
+export function CloneServer() {
+  const { mutualGuilds, sourceGuild, setSourceGuild, targetGuild, setTargetGuild } = useAuth();
+
+  // Source Guild Details
+  const [sourceDetails, setSourceDetails] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  // Cloning Options
+  const [cloneSettings, setCloneSettings] = useState({
+    name: true,
+    icon: true,
+    banner: true,
+    verification: true,
+  });
+
+  const [clearTarget, setClearTarget] = useState(true);
+  const [clearOptions, setClearOptions] = useState({
+    channels: true,
+    roles: true,
+    emojis: false,
+    stickers: false,
+    icon: false,
+    banner: false,
+  });
+
+  const [rolesMode, setRolesMode] = useState('all'); // all | custom
+  const [selectedRoles, setSelectedRoles] = useState([]);
+  const [isRolesModalOpen, setIsRolesModalOpen] = useState(false);
+
+  const [channelsMode, setChannelsMode] = useState('all'); // all | custom
+  const [selectedChannels, setSelectedChannels] = useState([]);
+  const [isChannelsModalOpen, setIsChannelsModalOpen] = useState(false);
+
+  const [cloneEmojis, setCloneEmojis] = useState(true);
+  const [cloneStickers, setCloneStickers] = useState(true);
+
+  const [messagesEnabled, setMessagesEnabled] = useState(false);
+  const [messageLimit, setMessageLimit] = useState(25);
+  const [cloneAttachments, setCloneAttachments] = useState(true);
+
+  // Execution & Logs
+  const [activeJobId, setActiveJobId] = useState(null);
+  const [jobStatus, setJobStatus] = useState('idle'); // idle | running | completed | failed | stopped
+  const [logs, setLogs] = useState([]);
+  const [confirmModal, setConfirmModal] = useState(false);
+
+  // Fetch source details when sourceGuild changes
+  useEffect(() => {
+    if (!sourceGuild?.id) return;
+    setLoadingDetails(true);
+    axios
+      .get(`/api/guilds/${sourceGuild.id}/details`)
+      .then((res) => {
+        setSourceDetails(res.data);
+        if (res.data.roles) {
+          setSelectedRoles(res.data.roles.map((r) => r.id));
+        }
+        if (res.data.categories) {
+          const allChIds = [];
+          res.data.categories.forEach((cat) => {
+            if (cat.id !== 'uncategorized') allChIds.push(cat.id);
+            cat.channels.forEach((c) => allChIds.push(c.id));
+          });
+          setSelectedChannels(allChIds);
+        }
+      })
+      .catch((err) => console.error('Failed to load guild details:', err))
+      .finally(() => setLoadingDetails(false));
+  }, [sourceGuild]);
+
+  // Connect SSE for Logs
+  useEffect(() => {
+    if (!activeJobId) return;
+
+    const eventSource = new EventSource(`/api/clone/logs/${activeJobId}`);
+
+    eventSource.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'init') {
+          setLogs(data.logs || []);
+          if (data.status) setJobStatus(data.status);
+        } else if (data.type === 'log') {
+          setLogs((prev) => [...prev, data.log]);
+        } else if (data.type === 'status') {
+          setJobStatus(data.status);
+          if (data.status === 'completed' || data.status === 'failed' || data.status === 'stopped') {
+            eventSource.close();
+          }
+        }
+      } catch (err) {
+        console.error('SSE parse error:', err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeJobId]);
+
+  const handleStartClone = async () => {
+    setConfirmModal(false);
+    if (!sourceGuild || !targetGuild) {
+      alert('Please select both a Source and a Target Discord Server.');
+      return;
+    }
+    if (sourceGuild.id === targetGuild.id) {
+      alert('Source and Target servers cannot be identical.');
+      return;
+    }
+
+    setJobStatus('running');
+    setLogs([]);
+
+    try {
+      const payload = {
+        sourceGuildId: sourceGuild.id,
+        targetGuildId: targetGuild.id,
+        options: {
+          cloneName: cloneSettings.name,
+          cloneIcon: cloneSettings.icon,
+          cloneBanner: cloneSettings.banner,
+          cloneVerification: cloneSettings.verification,
+          clearTarget,
+          clearTargetOptions: clearOptions,
+          roles: {
+            mode: rolesMode,
+            roleIds: selectedRoles,
+          },
+          channels: {
+            mode: channelsMode,
+            channelIds: selectedChannels,
+          },
+          cloneEmojis,
+          cloneStickers,
+          messages: {
+            enabled: messagesEnabled,
+            limitPerChannel: messageLimit,
+            cloneAttachments,
+          },
+        },
+      };
+
+      const res = await axios.post('/api/clone/start', payload);
+      setActiveJobId(res.data.jobId);
+    } catch (err) {
+      setJobStatus('failed');
+      setLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          timeFormatted: new Date().toLocaleTimeString(),
+          type: 'error',
+          message: `Failed to initiate clone: ${err.response?.data?.error || err.message}`,
+        },
+      ]);
+    }
+  };
+
+  const handleStopClone = async () => {
+    if (!activeJobId) return;
+    try {
+      await axios.post(`/api/clone/stop/${activeJobId}`);
+      setJobStatus('stopped');
+    } catch (err) {
+      console.error('Failed to stop job:', err);
+    }
+  };
+
+  return (
+    <div className="p-8 max-w-7xl mx-auto space-y-8">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-white">Full Server Cloner</h1>
+        <p className="text-sm text-discord-textMuted mt-1">
+          Configure replication options, select custom roles & channels, and execute high-speed synchronization.
+        </p>
+      </div>
+
+      {/* Server Selector Bar */}
+      <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-6 shadow-xl">
+        <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
+          {/* Source Server */}
+          <div className="md:col-span-5 space-y-2">
+            <label className="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+              Source Server (Copy From)
+            </label>
+            <div className="relative">
+              <select
+                value={sourceGuild?.id || ''}
+                onChange={(e) => {
+                  const g = mutualGuilds.find((item) => item.id === e.target.value);
+                  setSourceGuild(g || null);
+                }}
+                className="w-full bg-[#1e1f22] border border-[#35373c] hover:border-[#5865F2] focus:border-[#5865F2] rounded-xl px-4 py-3 text-white text-sm appearance-none outline-none transition-all font-medium pr-10"
+              >
+                {mutualGuilds.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name} ({g.rolesCount || 0} roles, {g.channelsCount || 0} channels)
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-discord-textMuted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Arrow Divider */}
+          <div className="md:col-span-1 flex justify-center pt-4 md:pt-6">
+            <div className="w-10 h-10 rounded-full bg-[#1e1f22] border border-[#35373c] flex items-center justify-center text-[#5865F2] shadow-inner">
+              <ArrowRight className="w-5 h-5" />
+            </div>
+          </div>
+
+          {/* Target Server */}
+          <div className="md:col-span-5 space-y-2">
+            <label className="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Target Server (Clone Into)
+            </label>
+            <div className="relative">
+              <select
+                value={targetGuild?.id || ''}
+                onChange={(e) => {
+                  const g = mutualGuilds.find((item) => item.id === e.target.value);
+                  setTargetGuild(g || null);
+                }}
+                className="w-full bg-[#1e1f22] border border-[#35373c] hover:border-emerald-500 focus:border-emerald-500 rounded-xl px-4 py-3 text-white text-sm appearance-none outline-none transition-all font-medium pr-10"
+              >
+                {mutualGuilds.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-discord-textMuted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Cloning Configuration Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Settings, Clear Target, Emojis */}
+        <div className="space-y-6">
+          {/* Server Identity / Branding */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
+              <Settings2 className="w-4 h-4 text-[#5865F2]" />
+              <span>Server Identity & Branding</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {[
+                { key: 'name', label: 'Server Name' },
+                { key: 'icon', label: 'Server Icon / Avatar' },
+                { key: 'banner', label: 'Server Banner' },
+                { key: 'verification', label: 'Verification Level' },
+              ].map((item) => (
+                <label
+                  key={item.key}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-sm transition-colors"
+                >
+                  <span className="text-[#dbdee1]">{item.label}</span>
+                  <input
+                    type="checkbox"
+                    checked={cloneSettings[item.key]}
+                    onChange={(e) =>
+                      setCloneSettings((prev) => ({ ...prev, [item.key]: e.target.checked }))
+                    }
+                    className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                  />
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Target Cleanup Section */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Trash2 className="w-4 h-4 text-rose-400" />
+                <span>Target Server Cleanup</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={clearTarget}
+                onChange={(e) => setClearTarget(e.target.checked)}
+                className="w-4 h-4 rounded text-rose-500 focus:ring-0 cursor-pointer"
+              />
+            </div>
+
+            {clearTarget && (
+              <div className="space-y-2 text-xs">
+                <p className="text-amber-400/90 text-xs flex items-center gap-1.5 mb-2 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                  Existing elements on the target server will be deleted prior to cloning.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: 'channels', label: 'Purge Channels' },
+                    { key: 'roles', label: 'Purge Roles' },
+                    { key: 'emojis', label: 'Purge Emojis' },
+                    { key: 'stickers', label: 'Purge Stickers' },
+                  ].map((c) => (
+                    <label
+                      key={c.key}
+                      className="flex items-center gap-2 p-2 rounded-lg bg-[#1e1f22] text-[#dbdee1] cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={clearOptions[c.key]}
+                        onChange={(e) =>
+                          setClearOptions((prev) => ({ ...prev, [c.key]: e.target.checked }))
+                        }
+                        className="rounded text-rose-500 focus:ring-0 cursor-pointer"
+                      />
+                      <span>{c.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Emojis & Stickers */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
+              <Smile className="w-4 h-4 text-yellow-400" />
+              <span>Emojis & Stickers</span>
+            </div>
+
+            <div className="space-y-2.5">
+              <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] text-sm cursor-pointer">
+                <div>
+                  <span className="text-[#dbdee1] font-medium block">Custom Emojis</span>
+                  <span className="text-xs text-discord-textMuted">
+                    {sourceDetails?.emojisCount || 0} emojis in source server
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={cloneEmojis}
+                  onChange={(e) => setCloneEmojis(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                />
+              </label>
+
+              <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] text-sm cursor-pointer">
+                <div>
+                  <span className="text-[#dbdee1] font-medium block">Custom Stickers</span>
+                  <span className="text-xs text-discord-textMuted">
+                    {sourceDetails?.stickersCount || 0} stickers in source server
+                  </span>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={cloneStickers}
+                  onChange={(e) => setCloneStickers(e.target.checked)}
+                  className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Center / Right Columns: Roles, Channels, Messages */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Roles Configuration */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Layers className="w-4 h-4 text-purple-400" />
+                <span>Roles Hierarchy & Permissions</span>
+              </div>
+              <span className="text-xs text-discord-textMuted">
+                {sourceDetails?.roles?.length || 0} Roles Available
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setRolesMode('all')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all ${
+                  rolesMode === 'all'
+                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
+                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                }`}
+              >
+                Clone All Roles ({sourceDetails?.roles?.length || 0})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setRolesMode('custom');
+                  setIsRolesModalOpen(true);
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                  rolesMode === 'custom'
+                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
+                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                }`}
+              >
+                <span>Select Specific Roles</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
+                  {selectedRoles.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Channels & Categories Configuration */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <Hash className="w-4 h-4 text-emerald-400" />
+                <span>Channels & Categories Architecture</span>
+              </div>
+              <span className="text-xs text-discord-textMuted">
+                {sourceDetails?.categories?.reduce((acc, c) => acc + c.channels.length, 0) || 0} Channels
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setChannelsMode('all')}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all ${
+                  channelsMode === 'all'
+                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
+                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                }`}
+              >
+                Clone All Channels & Categories
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setChannelsMode('custom');
+                  setIsChannelsModalOpen(true);
+                }}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                  channelsMode === 'custom'
+                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
+                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                }`}
+              >
+                <span>Select Channels</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
+                  {selectedChannels.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Message History Cloning */}
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm">
+                <MessageSquare className="w-4 h-4 text-cyan-400" />
+                <span>Message History Replication</span>
+              </div>
+              <input
+                type="checkbox"
+                checked={messagesEnabled}
+                onChange={(e) => setMessagesEnabled(e.target.checked)}
+                className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+              />
+            </div>
+
+            {messagesEnabled ? (
+              <div className="space-y-4 pt-1">
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-2">
+                    <span className="text-[#dbdee1]">Message History Limit per Channel</span>
+                    <span className="text-[#5865F2] font-mono">{messageLimit} messages</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="100"
+                    step="5"
+                    value={messageLimit}
+                    onChange={(e) => setMessageLimit(Number(e.target.value))}
+                    className="w-full h-2 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer accent-[#5865F2]"
+                  />
+                  <div className="flex justify-between text-[10px] text-discord-textMuted mt-1">
+                    <span>5 (Fast)</span>
+                    <span>50 (Recommended)</span>
+                    <span>100 (Max)</span>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#1e1f22] text-xs text-[#dbdee1] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={cloneAttachments}
+                    onChange={(e) => setCloneAttachments(e.target.checked)}
+                    className="rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                  />
+                  <span>Clone Media Attachments & Image Links via Relay Webhooks</span>
+                </label>
+              </div>
+            ) : (
+              <p className="text-xs text-discord-textMuted">
+                Enable to clone recent message history with original author avatars & usernames.
+              </p>
+            )}
+          </div>
+
+          {/* Action Trigger Button */}
+          <button
+            type="button"
+            disabled={jobStatus === 'running'}
+            onClick={() => setConfirmModal(true)}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#5865F2] to-[#4752C4] hover:from-[#4752C4] hover:to-[#3b44a9] text-white font-extrabold text-base shadow-xl shadow-[#5865F2]/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Play className="w-5 h-5 fill-current" />
+            <span>Launch Discord Server Clone Operation</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Live Real-Time Logs Terminal */}
+      <div className="pt-4">
+        <CloneLogs
+          jobId={activeJobId}
+          logs={logs}
+          status={jobStatus}
+          onStop={handleStopClone}
+          onClear={() => setLogs([])}
+        />
+      </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center gap-3 text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white text-base">Confirm Clone Operation</h3>
+                <p className="text-xs text-discord-textMuted">This will modify target server contents</p>
+              </div>
+            </div>
+
+            <div className="bg-[#1e1f22] p-4 rounded-xl space-y-2 text-xs">
+              <div className="flex justify-between">
+                <span className="text-discord-textMuted">Source:</span>
+                <span className="font-semibold text-white truncate max-w-[200px]">
+                  {sourceGuild?.name}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-discord-textMuted">Target:</span>
+                <span className="font-semibold text-white truncate max-w-[200px]">
+                  {targetGuild?.name}
+                </span>
+              </div>
+              {clearTarget && (
+                <div className="flex justify-between text-rose-400 font-semibold pt-1 border-t border-[#2b2d31]">
+                  <span>Target Server Wipe:</span>
+                  <span>Active</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-[#1e1f22] hover:bg-[#35373c] text-white text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStartClone}
+                className="flex-1 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm font-bold transition-all shadow-lg shadow-[#5865F2]/30"
+              >
+                Confirm & Start
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Roles Selection Modal */}
+      {isRolesModalOpen && sourceDetails && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-[#35373c] flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm">Select Roles to Clone</h3>
+              <button
+                onClick={() => setIsRolesModalOpen(false)}
+                className="p-1 rounded text-discord-textMuted hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-2">
+              {sourceDetails.roles.map((role) => (
+                <label
+                  key={role.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-xs"
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: role.color !== '#000000' ? role.color : '#949ba4' }}
+                    />
+                    <span className="font-semibold text-white">{role.name}</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selectedRoles.includes(role.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedRoles((prev) => [...prev, role.id]);
+                      } else {
+                        setSelectedRoles((prev) => prev.filter((id) => id !== role.id));
+                      }
+                    }}
+                    className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="p-4 border-t border-[#35373c] flex justify-end">
+              <button
+                onClick={() => setIsRolesModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#5865F2] text-white text-xs font-bold"
+              >
+                Done ({selectedRoles.length} selected)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Channels Selection Modal */}
+      {isChannelsModalOpen && sourceDetails && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-[#35373c] flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm">Select Channels & Categories</h3>
+              <button
+                onClick={() => setIsChannelsModalOpen(false)}
+                className="p-1 rounded text-discord-textMuted hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-4">
+              {sourceDetails.categories.map((cat) => (
+                <div key={cat.id} className="space-y-1.5">
+                  <div className="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider px-2">
+                    📁 {cat.name}
+                  </div>
+                  {cat.channels.map((ch) => (
+                    <label
+                      key={ch.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-xs ml-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Hash className="w-3.5 h-3.5 text-discord-textMuted" />
+                        <span className="text-[#dbdee1]">{ch.name}</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedChannels.includes(ch.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedChannels((prev) => [...prev, ch.id]);
+                          } else {
+                            setSelectedChannels((prev) => prev.filter((id) => id !== ch.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                      />
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="p-4 border-t border-[#35373c] flex justify-end">
+              <button
+                onClick={() => setIsChannelsModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-[#5865F2] text-white text-xs font-bold"
+              >
+                Done ({selectedChannels.length} selected)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
