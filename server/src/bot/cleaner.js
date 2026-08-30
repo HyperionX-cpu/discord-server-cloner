@@ -36,24 +36,27 @@ export async function cleanTargetGuild(targetGuild, options = {}, loggerContext)
 
   // 2. Clear Roles
   if (options.clearRoles) {
-    log('info', 'Clearing custom roles...');
+    log('info', 'Clearing existing custom roles...');
     try {
       const roles = await targetGuild.roles.fetch();
       const botMember = await targetGuild.members.fetchMe();
       const botHighestRolePosition = botMember.roles.highest.position;
 
-      for (const [id, role] of roles) {
+      // Sort roles from lowest to highest position to avoid hierarchy conflicts
+      const sortedRoles = Array.from(roles.values()).sort((a, b) => a.position - b.position);
+
+      for (const role of sortedRoles) {
         if (isCancelled && isCancelled()) {
           log('warn', 'Cleanup aborted by user.');
           return;
         }
-        if (role.name === '@everyone') continue;
+        if (role.name === '@everyone' || role.id === targetGuild.id) continue;
         if (role.managed) {
-          log('info', `Skipping managed bot role: @${role.name}`);
+          log('info', `Skipping managed bot/integration role: @${role.name}`);
           continue;
         }
         if (role.position >= botHighestRolePosition) {
-          log('warn', `Skipping role higher than bot's highest role: @${role.name}`);
+          log('warn', `Cannot delete @${role.name} (Position is above the bot's role in server settings). Make sure bot's role is at the very top!`);
           continue;
         }
 
@@ -63,9 +66,9 @@ export async function cleanTargetGuild(targetGuild, options = {}, loggerContext)
         } catch (err) {
           log('warn', `Could not delete role @${role.name}: ${err.message}`);
         }
-        await new Promise((r) => setTimeout(r, 250));
+        await new Promise((r) => setTimeout(r, 200));
       }
-      log('success', 'Custom roles cleared.');
+      log('success', 'Custom roles purge completed.');
     } catch (err) {
       log('error', `Failed clearing roles: ${err.message}`);
     }
