@@ -29,13 +29,17 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+const isProduction = process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
+
 app.use(
   session({
     secret: config.sessionSecret,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
-      secure: 'auto',
+      secure: isProduction,
+      sameSite: 'lax',
       httpOnly: true,
       maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days session persistence
     },
