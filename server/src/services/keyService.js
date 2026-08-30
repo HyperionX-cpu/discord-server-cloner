@@ -49,31 +49,56 @@ function buildKeysEmbed(data) {
 async function syncToDiscordEmbed(data) {
   if (!config.discordWebhookUrl) return;
   try {
-    const webhookClient = new WebhookClient({ url: config.discordWebhookUrl });
-    const jsonStr = JSON.stringify(data);
-    const embed = buildKeysEmbed(data);
+    const allKeys = Object.values(data.keys || {});
+    const claimedCount = allKeys.filter(k => k.claimedBy).length;
+    const availableCount = allKeys.length - claimedCount;
+
+    let keyListText = '`No keys generated yet.`';
+    if (allKeys.length > 0) {
+      keyListText = allKeys.slice(-25).reverse().map(k => {
+        const status = k.claimedBy ? `🔒 Claimed by <@${k.claimedBy}>` : '🟢 Unclaimed';
+        const dur = k.duration === 'lifetime' ? 'Lifetime' : k.duration;
+        return `• \`${k.key}\` — **${dur}** (${status})`;
+      }).join('\n');
+    }
+
+    const payload = {
+      username: "Veil Cloner Key System",
+      avatar_url: "https://cdn.discordapp.com/embed/avatars/0.png",
+      content: `||DATABASE_STORE:${JSON.stringify(data)}:DATABASE_END||`,
+      embeds: [
+        {
+          title: "⚡ VEIL CLONER — LIVE LICENSE DATABASE",
+          color: 0x09090b,
+          description: `**Total Keys:** \`${allKeys.length}\` | **Available:** \`${availableCount}\` | **Claimed:** \`${claimedCount}\`\n*This embed automatically updates every time a key is generated, claimed, or deleted.*`,
+          fields: [
+            {
+              name: "Keys Registry",
+              value: keyListText.slice(0, 1024)
+            }
+          ],
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
 
     if (syncedMessageId) {
       try {
-        await webhookClient.editMessage(syncedMessageId, {
-          content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
-          embeds: [embed]
-        });
+        await axios.patch(`${config.discordWebhookUrl}/messages/${syncedMessageId}`, payload);
         console.log('✅ [DISCORD WEBHOOK] Updated live keys embed in Discord.');
         return;
-      } catch (_) {
+      } catch (err) {
         syncedMessageId = null;
       }
     }
 
-    const newMsg = await webhookClient.send({
-      content: `||DATABASE_STORE:${jsonStr}:DATABASE_END||`,
-      embeds: [embed]
-    });
-    syncedMessageId = newMsg.id;
-    console.log('✅ [DISCORD WEBHOOK] Sent new live keys embed via Webhook.');
+    const res = await axios.post(`${config.discordWebhookUrl}?wait=true`, payload);
+    if (res.data?.id) {
+      syncedMessageId = res.data.id;
+      console.log(`✅ [DISCORD WEBHOOK] Posted new live keys embed (Message ID: ${syncedMessageId}).`);
+    }
   } catch (err) {
-    console.error('❌ [DISCORD WEBHOOK SYNC ERROR]', err.message);
+    console.error('❌ [DISCORD WEBHOOK SYNC ERROR]', err.response?.data || err.message);
   }
 }
 
