@@ -6,32 +6,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_FILE = path.resolve(__dirname, '../../keys_data.json');
 
-// Default initial data structure
+const OWNER_DISCORD_ID = "1240169071287205950";
+
 function loadData() {
   if (!fs.existsSync(DATA_FILE)) {
     const initial = {
-      keys: {
-        "VEIL-OWNER-LIFETIME-ACCESS": {
-          key: "VEIL-OWNER-LIFETIME-ACCESS",
-          duration: "lifetime",
-          createdAt: new Date().toISOString(),
-          expiresAt: null,
-          claimedBy: null,
-          claimedAt: null,
-          note: "Default Owner Master Key"
-        }
-      },
+      keys: {},
       users: {},
       bannedUsers: {},
-      adminDiscordIds: ["1240169071287205950"] // Owner ID
     };
     fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2));
     return initial;
   }
   try {
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
+    // Remove any legacy master key if it exists
+    if (parsed.keys?.["VEIL-OWNER-LIFETIME-ACCESS"]) {
+      delete parsed.keys["VEIL-OWNER-LIFETIME-ACCESS"];
+      fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
+    }
+    return parsed;
   } catch {
-    return { keys: {}, users: {}, bannedUsers: {}, adminDiscordIds: ["1240169071287205950"] };
+    return { keys: {}, users: {}, bannedUsers: {} };
   }
 }
 
@@ -49,21 +45,10 @@ export function generateKeyString(prefix = 'VEIL') {
   return `${prefix}-${segment()}-${segment()}-${segment()}`;
 }
 
-const OWNER_DISCORD_ID = "1240169071287205950";
-
 export const keyService = {
   isAdmin(discordId) {
     if (!discordId) return false;
     return discordId.toString() === OWNER_DISCORD_ID;
-  },
-
-  addAdmin(discordId) {
-    const data = loadData();
-    if (!data.adminDiscordIds) data.adminDiscordIds = [];
-    if (!data.adminDiscordIds.includes(discordId.toString())) {
-      data.adminDiscordIds.push(discordId.toString());
-      saveData(data);
-    }
   },
 
   isUserBanned(discordId) {
@@ -105,12 +90,14 @@ export const keyService = {
 
   createKey({ duration = '30d', note = '', prefix = 'VEIL' }) {
     const data = loadData();
+    if (!data.keys) data.keys = {};
     const key = generateKeyString(prefix);
     data.keys[key] = {
       key,
       duration, // '1d', '7d', '30d', '90d', 'lifetime'
       createdAt: new Date().toISOString(),
       claimedBy: null,
+      claimedUsername: null,
       claimedAt: null,
       expiresAt: null,
       note
@@ -154,7 +141,7 @@ export const keyService = {
         isOwner: true,
         duration: 'lifetime',
         expiresAt: null,
-        key: 'ADMIN-OVERRIDE'
+        key: 'OWNER-BYPASS'
       };
     }
 
@@ -194,8 +181,9 @@ export const keyService = {
       return { success: false, error: 'Invalid license key. Please verify and try again.' };
     }
 
+    // STRICT PER-ACCOUNT LOCK: If key was claimed by someone else, reject
     if (keyObj.claimedBy && keyObj.claimedBy !== discordId.toString()) {
-      return { success: false, error: 'This license key has already been redeemed by another Discord account.' };
+      return { success: false, error: 'This key has already been claimed by another Discord account.' };
     }
 
     const now = new Date();
@@ -213,6 +201,7 @@ export const keyService = {
       expiresAt = null;
     }
 
+    // Mark key as claimed in DB
     keyObj.claimedBy = discordId.toString();
     keyObj.claimedUsername = username;
     keyObj.claimedAt = now.toISOString();
