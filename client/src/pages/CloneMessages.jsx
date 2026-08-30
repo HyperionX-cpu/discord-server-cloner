@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CloneLogs } from '../components/CloneLogs';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function CloneMessages() {
   const { mutualGuilds, sourceGuild, setSourceGuild, targetGuild, setTargetGuild } = useAuth();
@@ -130,109 +131,101 @@ export function CloneMessages() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Source Channel Card */}
-        <div className="lg:col-span-5 bg-[#2b2d31] border border-[#35373c] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+        <div className="lg:col-span-5 bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+          <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-zinc-800 pb-3 uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-white"></span>
             <span>Source Channel</span>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-discord-textMuted block mb-1">Server</label>
-              <select
+              <label className="text-[11px] font-bold text-zinc-400 block mb-1 uppercase tracking-wider">Server</label>
+              <CustomSelect
                 value={sourceGuild?.id || ''}
-                onChange={(e) => {
-                  const g = mutualGuilds.find((item) => item.id === e.target.value);
+                onChange={(val) => {
+                  const g = mutualGuilds.find((item) => item.id === val);
                   setSourceGuild(g || null);
                 }}
-                className="w-full bg-[#1e1f22] border border-[#35373c] rounded-xl px-3 py-2.5 text-white text-xs font-medium"
-              >
-                {mutualGuilds.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+                options={mutualGuilds.map((g) => ({
+                  value: g.id,
+                  label: g.name,
+                }))}
+                placeholder="Select Server"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-discord-textMuted block mb-1">
+              <label className="text-[11px] font-bold text-zinc-400 block mb-1 uppercase tracking-wider">
                 Text Channel
               </label>
-              <select
+              <CustomSelect
                 value={sourceChannelId}
-                onChange={(e) => setSourceChannelId(e.target.value)}
-                className="w-full bg-[#1e1f22] border border-[#35373c] rounded-xl px-3 py-2.5 text-white text-xs font-medium"
-              >
-                {allSourceTextChannels.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSourceChannelId(val)}
+                options={allSourceTextChannels.map((c) => ({
+                  value: c.id,
+                  label: `#${c.name}`,
+                }))}
+                placeholder="Select Channel"
+              />
             </div>
           </div>
         </div>
 
         {/* Divider */}
         <div className="lg:col-span-2 flex items-center justify-center">
-          <div className="w-12 h-12 rounded-full bg-[#2b2d31] border border-[#35373c] flex items-center justify-center text-[#5865F2]">
-            <ArrowRight className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white shadow-xl">
+            <ArrowRight className="w-5 h-5" />
           </div>
         </div>
 
         {/* Target Channel Card */}
-        <div className="lg:col-span-5 bg-[#2b2d31] border border-[#35373c] rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+        <div className="lg:col-span-5 bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+          <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-zinc-800 pb-3 uppercase tracking-wider">
+            <span className="w-2 h-2 rounded-full bg-white"></span>
             <span>Target Channel</span>
           </div>
 
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-discord-textMuted block mb-1">Server</label>
-              <select
+              <label className="text-[11px] font-bold text-zinc-400 block mb-1 uppercase tracking-wider">Server</label>
+              <CustomSelect
                 value={targetGuild?.id || ''}
-                onChange={(e) => {
-                  const g = mutualGuilds.find((item) => item.id === e.target.value);
+                onChange={(val) => {
+                  const g = mutualGuilds.find((item) => item.id === val);
                   setTargetGuild(g || null);
                 }}
-                className="w-full bg-[#1e1f22] border border-[#35373c] rounded-xl px-3 py-2.5 text-white text-xs font-medium"
-              >
-                {mutualGuilds.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
+                options={mutualGuilds.map((g) => ({
+                  value: g.id,
+                  label: g.name,
+                }))}
+                placeholder="Select Server"
+              />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-discord-textMuted block mb-1">
+              <label className="text-[11px] font-bold text-zinc-400 block mb-1 uppercase tracking-wider">
                 Text Channel
               </label>
-              <select
+              <CustomSelect
                 value={targetChannelId}
-                onChange={(e) => setTargetChannelId(e.target.value)}
-                className="w-full bg-[#1e1f22] border border-[#35373c] rounded-xl px-3 py-2.5 text-white text-xs font-medium"
-              >
-                {allTargetTextChannels.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    #{c.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setTargetChannelId(val)}
+                options={allTargetTextChannels.map((c) => ({
+                  value: c.id,
+                  label: `#${c.name}`,
+                }))}
+                placeholder="Select Channel"
+              />
             </div>
           </div>
         </div>
       </div>
 
       {/* Settings & Action Card */}
-      <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-6 space-y-6">
+      <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-6 shadow-xl">
         <div>
-          <div className="flex justify-between text-xs font-semibold mb-2">
+          <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
             <span className="text-white">Message Fetch Limit</span>
-            <span className="text-[#5865F2] font-mono">{messageLimit} messages</span>
+            <span className="text-zinc-400 font-mono">{messageLimit} messages</span>
           </div>
           <input
             type="range"
@@ -241,19 +234,19 @@ export function CloneMessages() {
             step="5"
             value={messageLimit}
             onChange={(e) => setMessageLimit(Number(e.target.value))}
-            className="w-full h-2 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer accent-[#5865F2]"
+            className="w-full h-2 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
           />
         </div>
 
-        <label className="flex items-center gap-3 p-3 rounded-xl bg-[#1e1f22] text-xs text-[#dbdee1] cursor-pointer">
+        <label className="flex items-center gap-3 p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 cursor-pointer">
           <input
             type="checkbox"
             checked={cloneAttachments}
             onChange={(e) => setCloneAttachments(e.target.checked)}
-            className="rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+            className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
           />
           <div className="flex items-center gap-2">
-            <FileImage className="w-4 h-4 text-discord-textMuted" />
+            <FileImage className="w-4 h-4 text-zinc-400" />
             <span>Forward images, file attachments & rich embeds</span>
           </div>
         </label>
@@ -262,7 +255,7 @@ export function CloneMessages() {
           type="button"
           disabled={jobStatus === 'running'}
           onClick={handleStartMessageClone}
-          className="w-full py-3.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold text-sm shadow-xl shadow-[#5865F2]/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          className="w-full py-4 rounded-2xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider shadow-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
           <Play className="w-4 h-4 fill-current" />
           <span>Execute Message Transfer</span>
