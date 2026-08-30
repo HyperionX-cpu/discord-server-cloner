@@ -166,7 +166,7 @@ export const keyService = {
     return Object.values(data.bannedUsers || {});
   },
 
-  createKey({ duration = '30d', note = '', prefix = 'VEIL' }) {
+  async createKey({ duration = '30d', note = '', prefix = 'VEIL' }) {
     const data = loadData();
     if (!data.keys) data.keys = {};
     const key = generateKeyString(prefix);
@@ -181,6 +181,7 @@ export const keyService = {
       note
     };
     saveData(data);
+    await syncToGitHub(data);
     return data.keys[key];
   },
 
