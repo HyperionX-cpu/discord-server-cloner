@@ -13,13 +13,13 @@ function requireAdmin(req, res, next) {
 }
 
 // POST /api/admin/keys/generate
-adminRouter.post('/keys/generate', requireAdmin, (req, res) => {
+adminRouter.post('/keys/generate', requireAdmin, async (req, res) => {
   const { duration, note, prefix, amount = 1 } = req.body;
   const count = Math.min(Math.max(parseInt(amount) || 1, 1), 50);
   const createdKeys = [];
 
   for (let i = 0; i < count; i++) {
-    const key = keyService.createKey({ duration: duration || '30d', note: note || '', prefix: prefix || 'VEIL' });
+    const key = await keyService.createKey({ duration: duration || '30d', note: note || '', prefix: prefix || 'VEIL' });
     createdKeys.push(key);
   }
 
