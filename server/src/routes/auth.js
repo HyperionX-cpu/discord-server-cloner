@@ -75,7 +75,13 @@ authRouter.get('/callback', async (req, res) => {
     };
     req.session.userGuilds = guildsResponse.data;
 
-    res.redirect(config.frontendUrl);
+    // Explicitly save session to cookie store before redirecting to frontend
+    req.session.save((err) => {
+      if (err) {
+        console.error('[SESSION SAVE ERROR]', err);
+      }
+      res.redirect(config.frontendUrl);
+    });
   } catch (error) {
     console.error('[AUTH ERROR]', error.response?.data || error.message);
     res.redirect(`${config.frontendUrl}?auth_error=token_exchange_failed`);
