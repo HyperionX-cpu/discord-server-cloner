@@ -13,7 +13,9 @@ import {
   RefreshCw,
   Search,
   CheckCircle2,
-  Lock
+  Lock,
+  Download,
+  Upload
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CustomSelect } from '../components/CustomSelect';
@@ -115,6 +117,40 @@ export function AdminPanel() {
     } catch (err) {
       alert('Failed to unban user');
     }
+  };
+
+  const handleExportBackup = async () => {
+    try {
+      const res = await axios.get('/api/admin/export');
+      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `veil_keys_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    } catch (err) {
+      alert('Failed to export backup');
+    }
+  };
+
+  const handleImportBackup = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const parsed = JSON.parse(event.target.result);
+        const res = await axios.post('/api/admin/import', { data: parsed });
+        if (res.data.success) {
+          alert('Backup restored successfully!');
+          fetchKeys();
+          fetchBans();
+        }
+      } catch (err) {
+        alert('Failed to import backup file.');
+      }
+    };
+    reader.readAsText(file);
   };
 
   const copyToClipboard = (text) => {
