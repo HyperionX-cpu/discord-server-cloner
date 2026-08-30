@@ -5,7 +5,10 @@ const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [license, setLicense] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  
   const [mutualGuilds, setMutualGuilds] = useState([]);
   const [nonBotGuilds, setNonBotGuilds] = useState([]);
   const [botInviteUrl, setBotInviteUrl] = useState('');
@@ -19,15 +22,33 @@ export function AuthProvider({ children }) {
       const res = await axios.get('/api/auth/me');
       if (res.data.authenticated) {
         setUser(res.data.user);
+        setLicense(res.data.license || null);
+        setIsAdmin(!!res.data.isAdmin);
         setBotInviteUrl(res.data.botInviteUrl || '');
       } else {
         setUser(null);
+        setLicense(null);
+        setIsAdmin(false);
       }
     } catch (err) {
-      console.warn('Auth check failed:', err.message);
       setUser(null);
+      setLicense(null);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const redeemKey = async (keyString) => {
+    try {
+      const res = await axios.post('/api/auth/redeem', { key: keyString });
+      if (res.data.success) {
+        setLicense(res.data.license);
+        return { success: true };
+      }
+      return { success: false, error: res.data.error || 'Failed to redeem key.' };
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || 'Invalid key.' };
     }
   };
 
@@ -58,7 +79,9 @@ export function AuthProvider({ children }) {
       await axios.post('/api/auth/logout');
     } catch (_) {}
     setUser(null);
-    window.location.reload();
+    setLicense(null);
+    setIsAdmin(false);
+    window.location.href = '/';
   };
 
   useEffect(() => {
@@ -66,26 +89,30 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (user) {
+    if (user && license?.active) {
       fetchGuilds();
     }
-  }, [user]);
+  }, [user, license]);
 
   return (
     <AuthContext.Provider
       value={{
         user,
+        license,
+        isAdmin,
         loading,
+        redeemKey,
+        refreshAuth: fetchUser,
         mutualGuilds,
         nonBotGuilds,
-        botInviteUrl,
         guildsLoading,
-        fetchGuilds,
-        logout,
         sourceGuild,
         setSourceGuild,
         targetGuild,
         setTargetGuild,
+        botInviteUrl,
+        fetchGuilds,
+        logout,
       }}
     >
       {children}
