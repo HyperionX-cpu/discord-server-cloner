@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CloneLogs } from '../components/CloneLogs';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function CloneServer() {
   const { mutualGuilds, sourceGuild, setSourceGuild, targetGuild, setTargetGuild } = useAuth();
@@ -193,73 +194,63 @@ export function CloneServer() {
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-8 text-white">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-extrabold text-white">Full Server Cloner</h1>
-        <p className="text-sm text-discord-textMuted mt-1">
+        <h1 className="text-2xl font-black uppercase tracking-tight text-white">Full Server Cloner</h1>
+        <p className="text-xs text-zinc-400 mt-1">
           Configure replication options, select custom roles & channels, and execute high-speed synchronization.
         </p>
       </div>
 
       {/* Server Selector Bar */}
-      <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-6 shadow-xl">
+      <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 shadow-xl">
         <div className="grid grid-cols-1 md:grid-cols-11 gap-4 items-center">
           {/* Source Server */}
           <div className="md:col-span-5 space-y-2">
-            <label className="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-white"></span>
               Source Server (Copy From)
             </label>
-            <div className="relative">
-              <select
-                value={sourceGuild?.id || ''}
-                onChange={(e) => {
-                  const g = mutualGuilds.find((item) => item.id === e.target.value);
-                  setSourceGuild(g || null);
-                }}
-                className="w-full bg-[#1e1f22] border border-[#35373c] hover:border-[#5865F2] focus:border-[#5865F2] rounded-xl px-4 py-3 text-white text-sm appearance-none outline-none transition-all font-medium pr-10"
-              >
-                {mutualGuilds.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name} ({g.rolesCount || 0} roles, {g.channelsCount || 0} channels)
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-discord-textMuted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <CustomSelect
+              value={sourceGuild?.id || ''}
+              onChange={(val) => {
+                const g = mutualGuilds.find((item) => item.id === val);
+                setSourceGuild(g || null);
+              }}
+              options={mutualGuilds.map((g) => ({
+                value: g.id,
+                label: `${g.name} (${g.rolesCount || 0} roles, ${g.channelsCount || 0} channels)`,
+              }))}
+              placeholder="Select Source Server"
+            />
           </div>
 
           {/* Arrow Divider */}
           <div className="md:col-span-1 flex justify-center pt-4 md:pt-6">
-            <div className="w-10 h-10 rounded-full bg-[#1e1f22] border border-[#35373c] flex items-center justify-center text-[#5865F2] shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-white shadow-inner">
               <ArrowRight className="w-5 h-5" />
             </div>
           </div>
 
           {/* Target Server */}
           <div className="md:col-span-5 space-y-2">
-            <label className="text-xs font-bold text-discord-textMuted uppercase tracking-wider flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <label className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-white"></span>
               Target Server (Clone Into)
             </label>
-            <div className="relative">
-              <select
-                value={targetGuild?.id || ''}
-                onChange={(e) => {
-                  const g = mutualGuilds.find((item) => item.id === e.target.value);
-                  setTargetGuild(g || null);
-                }}
-                className="w-full bg-[#1e1f22] border border-[#35373c] hover:border-emerald-500 focus:border-emerald-500 rounded-xl px-4 py-3 text-white text-sm appearance-none outline-none transition-all font-medium pr-10"
-              >
-                {mutualGuilds.map((g) => (
-                  <option key={g.id} value={g.id}>
-                    {g.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-discord-textMuted absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <CustomSelect
+              value={targetGuild?.id || ''}
+              onChange={(val) => {
+                const g = mutualGuilds.find((item) => item.id === val);
+                setTargetGuild(g || null);
+              }}
+              options={mutualGuilds.map((g) => ({
+                value: g.id,
+                label: g.name,
+              }))}
+              placeholder="Select Target Server"
+            />
           </div>
         </div>
       </div>
@@ -539,9 +530,9 @@ export function CloneServer() {
             type="button"
             disabled={jobStatus === 'running'}
             onClick={() => setConfirmModal(true)}
-            className="w-full py-4 rounded-xl bg-gradient-to-r from-[#5865F2] to-[#4752C4] hover:from-[#4752C4] hover:to-[#3b44a9] text-white font-extrabold text-base shadow-xl shadow-[#5865F2]/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-4 rounded-2xl bg-white hover:bg-zinc-200 text-black font-black text-xs uppercase tracking-wider shadow-2xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Play className="w-5 h-5 fill-current" />
+            <Play className="w-4 h-4 fill-current" />
             <span>Launch Discord Server Clone Operation</span>
           </button>
         </div>
