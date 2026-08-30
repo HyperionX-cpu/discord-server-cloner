@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config.js';
 import { initBot } from './bot/client.js';
+import { pullFromDiscordChannel } from './services/keyService.js';
 import { authRouter } from './routes/auth.js';
 import { guildsRouter } from './routes/guilds.js';
 import { cloneRouter } from './routes/clone.js';
@@ -76,6 +77,9 @@ app.listen(config.port, async () => {
   console.log(`[SERVER] Running at http://localhost:${config.port}`);
   console.log(`[SERVER] Allowed frontend: ${config.frontendUrl}`);
 
-  // Initialize Discord Bot
-  await initBot();
+  // Initialize Discord Bot & Restore Cloud Embed Database
+  const botClient = await initBot();
+  if (botClient) {
+    await pullFromDiscordChannel();
+  }
 });
