@@ -89,11 +89,12 @@ export function Dashboard({ onNavigate }) {
         })}
       </div>
 
-      {/* Server Grids */}
+      {/* Synchronized Servers Grid */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-black uppercase tracking-wider text-white">
-            Available Servers ({mutualGuilds.length})
+          <h2 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            Synchronized Servers ({mutualGuilds.length})
           </h2>
           {botInviteUrl && (
             <a
@@ -110,21 +111,10 @@ export function Dashboard({ onNavigate }) {
         {mutualGuilds.length === 0 ? (
           <div className="p-12 text-center bg-[#121215] border border-zinc-800/80 rounded-3xl space-y-3">
             <Server className="w-10 h-10 text-zinc-600 mx-auto" />
-            <h3 className="text-base font-bold text-white">No Mutual Servers Found</h3>
+            <h3 className="text-base font-bold text-white">No Synchronized Servers</h3>
             <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-              You must invite the Veil Bot to servers where you have Administrator or Manage Server permissions.
+              Add the Veil Bot to any server below where you have Administrator or Manage Server permissions.
             </p>
-            {botInviteUrl && (
-              <a
-                href={botInviteUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-black font-black text-xs uppercase tracking-wider rounded-xl mt-2"
-              >
-                <span>Invite Bot Now</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -149,7 +139,7 @@ export function Dashboard({ onNavigate }) {
 
                 <button
                   onClick={() => onNavigate('clone')}
-                  className="px-3 py-1.5 bg-zinc-800 hover:bg-white hover:text-black text-white text-xs font-bold rounded-xl transition"
+                  className="px-3.5 py-1.5 bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider rounded-xl transition shadow-md"
                 >
                   Clone
                 </button>
@@ -158,6 +148,56 @@ export function Dashboard({ onNavigate }) {
           </div>
         )}
       </div>
+
+      {/* Unlinked Servers (Servers user owns/admins but bot is not in yet) */}
+      {nonBotGuilds.length > 0 && (
+        <div className="space-y-4 pt-4 border-t border-zinc-900">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-zinc-300 flex items-center gap-2">
+                <Users className="w-4 h-4 text-zinc-500" />
+                Your Other Admin Servers ({nonBotGuilds.length})
+              </h2>
+              <p className="text-[11px] text-zinc-500 mt-0.5">
+                Servers you manage where Veil Bot is not invited yet. Click "Add Bot" to link.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {nonBotGuilds.map((g) => (
+              <div
+                key={g.id}
+                className="p-4 rounded-2xl bg-[#121215]/80 border border-zinc-800/80 hover:border-zinc-700 transition flex items-center justify-between shadow-lg"
+              >
+                <div className="flex items-center gap-3 overflow-hidden">
+                  {g.icon ? (
+                    <img src={g.icon} alt={g.name} className="w-10 h-10 rounded-xl object-cover border border-zinc-800 opacity-80" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-xs text-zinc-400">
+                      {g.name.slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-zinc-300 truncate">{g.name}</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">Bot Not Added</p>
+                  </div>
+                </div>
+
+                <a
+                  href={g.inviteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Bot</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
