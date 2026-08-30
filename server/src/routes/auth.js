@@ -7,16 +7,9 @@ export const authRouter = express.Router();
 // GET /api/auth/login
 authRouter.get('/login', (req, res) => {
   if (!config.discord.clientId || !config.discord.clientSecret) {
-    // If OAuth is not configured, log in as default user for local testing
-    req.session.user = {
-      id: '123456789012345678',
-      username: 'hyperionlarp',
-      discriminator: '0',
-      global_name: 'Hyperion',
-      avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
-      isDemo: true,
-    };
-    return res.redirect(config.frontendUrl);
+    return res.status(500).json({
+      error: 'DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET is missing from environment variables on Render.'
+    });
   }
 
   const oauthUrl = `https://discord.com/oauth2/authorize?client_id=${config.discord.clientId}&response_type=code&redirect_uri=${encodeURIComponent(
@@ -94,22 +87,6 @@ authRouter.get('/me', (req, res) => {
     return res.json({
       authenticated: true,
       user: req.session.user,
-      botInviteUrl: config.discord.botInviteUrl,
-    });
-  }
-
-  // Fallback demo user if in local environment without OAuth
-  if (!config.discord.clientId) {
-    return res.json({
-      authenticated: true,
-      user: {
-        id: '123456789012345678',
-        username: 'hyperionlarp',
-        discriminator: '0',
-        global_name: 'hyperionlarp',
-        avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
-        isDemo: true,
-      },
       botInviteUrl: config.discord.botInviteUrl,
     });
   }
