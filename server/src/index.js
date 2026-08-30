@@ -8,6 +8,7 @@ import { initBot } from './bot/client.js';
 import { authRouter } from './routes/auth.js';
 import { guildsRouter } from './routes/guilds.js';
 import { cloneRouter } from './routes/clone.js';
+import { adminRouter } from './routes/admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,7 +37,7 @@ app.use(
     cookie: {
       secure: 'auto',
       httpOnly: true,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days session persistence
     },
   })
 );
@@ -45,6 +46,7 @@ app.use(
 app.use('/api/auth', authRouter);
 app.use('/api/guilds', guildsRouter);
 app.use('/api/clone', cloneRouter);
+app.use('/api/admin', adminRouter);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
