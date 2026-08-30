@@ -13,6 +13,19 @@ const OWNER_DISCORD_ID = "1240169071287205950";
 
 let memoryCache = { keys: {}, users: {}, bannedUsers: {} };
 let syncedMessageId = null;
+let syncTimeout = null;
+
+function triggerEmbedSync() {
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(async () => {
+    try {
+      const data = loadData();
+      await syncToDiscordEmbed(data);
+    } catch (err) {
+      console.error('[SYNC TIMER ERROR]', err);
+    }
+  }, 2000); // Trigger 2 seconds after key creation/claim
+}
 
 // Build a clean embed displaying all active keys and statistics
 function buildKeysEmbed(data) {
@@ -49,8 +62,18 @@ function buildKeysEmbed(data) {
 async function syncToDiscordEmbed(data) {
   try {
     const client = getClient();
-    if (!client || !client.isReady() || !config.discordKeyChannelId) {
-      console.log('[DISCORD SYNC] Bot not ready or channel ID missing.');
+    if (!client || !config.discordKeyChannelId) {
+      console.log('[DISCORD SYNC] Bot client instance or channel ID missing.');
+      return;
+    }
+
+    // If client is logging in, wait a couple seconds
+    if (!client.isReady()) {
+      await new Promise(resolve => setTimeout(resolve, 3000));
+    }
+
+    if (!client.isReady()) {
+      console.log('[DISCORD SYNC] Bot is still logging in to Discord Gateway. Retrying soon.');
       return;
     }
 
@@ -163,8 +186,8 @@ async function saveData(data) {
     console.error('[LOCAL SAVE ERROR]', err);
   }
 
-  // Update Discord live embed in channel
-  await syncToDiscordEmbed(data);
+  // Trigger debounced embed update in Discord channel
+  triggerEmbedSync();
 }
 
 export function generateKeyString(prefix = 'VEIL') {
