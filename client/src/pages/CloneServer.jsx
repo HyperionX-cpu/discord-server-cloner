@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import axios from 'axios';
 import {
   ArrowRight,
@@ -471,26 +472,26 @@ export function CloneServer() {
           </div>
 
           {/* Message History Cloning */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <MessageSquare className="w-4 h-4 text-cyan-400" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                <MessageSquare className="w-4 h-4 text-white" />
                 <span>Message History Replication</span>
               </div>
               <input
                 type="checkbox"
                 checked={messagesEnabled}
                 onChange={(e) => setMessagesEnabled(e.target.checked)}
-                className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
               />
             </div>
 
             {messagesEnabled ? (
               <div className="space-y-4 pt-1">
                 <div>
-                  <div className="flex justify-between text-xs font-semibold mb-2">
-                    <span className="text-[#dbdee1]">Message History Limit per Channel</span>
-                    <span className="text-[#5865F2] font-mono">{messageLimit} messages</span>
+                  <div className="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
+                    <span className="text-zinc-300">Message History Limit per Channel</span>
+                    <span className="text-white font-mono">{messageLimit} messages</span>
                   </div>
                   <input
                     type="range"
@@ -499,27 +500,27 @@ export function CloneServer() {
                     step="5"
                     value={messageLimit}
                     onChange={(e) => setMessageLimit(Number(e.target.value))}
-                    className="w-full h-2 bg-[#1e1f22] rounded-lg appearance-none cursor-pointer accent-[#5865F2]"
+                    className="w-full h-2 bg-zinc-900 rounded-lg appearance-none cursor-pointer accent-white"
                   />
-                  <div className="flex justify-between text-[10px] text-discord-textMuted mt-1">
+                  <div className="flex justify-between text-[10px] text-zinc-500 font-mono mt-1">
                     <span>5 (Fast)</span>
                     <span>50 (Recommended)</span>
                     <span>100 (Max)</span>
                   </div>
                 </div>
 
-                <label className="flex items-center gap-2.5 p-2.5 rounded-lg bg-[#1e1f22] text-xs text-[#dbdee1] cursor-pointer">
+                <label className="flex items-center gap-3 p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 cursor-pointer font-semibold">
                   <input
                     type="checkbox"
                     checked={cloneAttachments}
                     onChange={(e) => setCloneAttachments(e.target.checked)}
-                    className="rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                   />
                   <span>Clone Media Attachments & Image Links via Relay Webhooks</span>
                 </label>
               </div>
             ) : (
-              <p className="text-xs text-discord-textMuted">
+              <p className="text-xs text-zinc-400">
                 Enable to clone recent message history with original author avatars & usernames.
               </p>
             )}
@@ -550,8 +551,8 @@ export function CloneServer() {
       </div>
 
       {/* Confirmation Modal */}
-      {confirmModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      {confirmModal && createPortal(
+        <div className="fixed inset-0 w-screen h-screen bg-black/85 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
           <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center">
@@ -601,12 +602,13 @@ export function CloneServer() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Roles Selection Modal */}
-      {isRolesModalOpen && sourceDetails && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      {isRolesModalOpen && sourceDetails && createPortal(
+        <div className="fixed inset-0 w-screen h-screen bg-black/85 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
           <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl text-white">
             <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
               <h3 className="font-bold text-white text-sm uppercase tracking-wider">Select Roles to Clone</h3>
@@ -654,12 +656,13 @@ export function CloneServer() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Channels & Categories Selection Modal */}
-      {isChannelsModalOpen && sourceDetails && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+      {isChannelsModalOpen && sourceDetails && createPortal(
+        <div className="fixed inset-0 w-screen h-screen bg-black/85 backdrop-blur-xl z-[9999] flex items-center justify-center p-4">
           <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl text-white">
             <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
               <h3 className="font-bold text-white text-sm uppercase tracking-wider">Select Channels & Categories</h3>
@@ -678,10 +681,8 @@ export function CloneServer() {
 
                 const toggleCategory = () => {
                   if (allCatSelected) {
-                    // Deselect all channels in this category + category itself
                     setSelectedChannels((prev) => prev.filter((id) => id !== cat.id && !catChannelIds.includes(id)));
                   } else {
-                    // Select all channels in this category + category itself
                     const toAdd = [cat.id, ...catChannelIds].filter((id) => !selectedChannels.includes(id));
                     setSelectedChannels((prev) => [...prev, ...toAdd]);
                   }
@@ -749,7 +750,8 @@ export function CloneServer() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
