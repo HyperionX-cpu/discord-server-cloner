@@ -108,7 +108,7 @@ authRouter.get('/me', (req, res) => {
 });
 
 // POST /api/auth/redeem
-authRouter.post('/redeem', (req, res) => {
+authRouter.post('/redeem', async (req, res) => {
   const user = req.session?.user;
   if (!user) {
     return res.status(401).json({ error: 'Please log in with Discord first.' });
@@ -119,7 +119,7 @@ authRouter.post('/redeem', (req, res) => {
     return res.status(400).json({ error: 'License key is required.' });
   }
 
-  const result = keyService.redeemKey(user.id, user.username, key);
+  const result = await keyService.redeemKey(user.id, user.username, key);
   if (!result.success) {
     return res.status(400).json({ error: result.error });
   }
