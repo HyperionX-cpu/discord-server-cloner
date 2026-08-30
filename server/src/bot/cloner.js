@@ -321,21 +321,32 @@ export async function cloneGuild({ jobId, sourceGuildId, targetGuildId, options 
       try {
         const emojis = await sourceGuild.emojis.fetch();
         log('info', `Found ${emojis.size} emoji(s) in source.`);
+        
+        let emojiCount = 0;
         for (const [id, emoji] of emojis) {
           if (isCancelled()) break;
           try {
+            const emojiUrl = emoji.imageURL({ size: 128, extension: emoji.animated ? 'gif' : 'png' }) || emoji.url;
+            
+            // Fetch buffer with 5 second timeout to prevent hanging
+            const imgRes = await axios.get(emojiUrl, {
+              responseType: 'arraybuffer',
+              timeout: 5000,
+            });
+
             await targetGuild.emojis.create({
-              attachment: emoji.url,
-              name: emoji.name,
+              attachment: Buffer.from(imgRes.data),
+              name: emoji.name.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 32) || 'emoji',
               reason: 'Discord Cloner emoji copy',
             });
-            log('info', `Cloned emoji :${emoji.name}:`);
+            emojiCount++;
+            log('info', `Cloned emoji (${emojiCount}/${emojis.size}): :${emoji.name}:`);
           } catch (err) {
             log('warn', `Could not clone emoji :${emoji.name}:: ${err.message}`);
           }
-          await new Promise((r) => setTimeout(r, 500));
+          await new Promise((r) => setTimeout(r, 400));
         }
-        log('success', 'Emojis cloning finished.');
+        log('success', `Emojis cloning finished (${emojiCount}/${emojis.size} cloned).`);
       } catch (err) {
         log('error', `Failed cloning emojis: ${err.message}`);
       }
