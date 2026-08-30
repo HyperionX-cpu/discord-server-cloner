@@ -657,7 +657,7 @@ export function CloneServer() {
         </div>
       )}
 
-      {/* Channels Selection Modal */}
+      {/* Channels & Categories Selection Modal */}
       {isChannelsModalOpen && sourceDetails && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl text-white">
@@ -671,41 +671,79 @@ export function CloneServer() {
               </button>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-4">
-              {sourceDetails.categories.map((cat) => (
-                <div key={cat.id} className="space-y-1.5">
-                  <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-2">
-                    📁 {cat.name}
-                  </div>
-                  {cat.channels.map((ch) => (
-                    <label
-                      key={ch.id}
-                      className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer text-xs ml-2"
+              {sourceDetails.categories.map((cat) => {
+                const catChannelIds = cat.channels.map((c) => c.id);
+                const allCatSelected = catChannelIds.length > 0 && catChannelIds.every((id) => selectedChannels.includes(id));
+                const someCatSelected = catChannelIds.some((id) => selectedChannels.includes(id));
+
+                const toggleCategory = () => {
+                  if (allCatSelected) {
+                    // Deselect all channels in this category + category itself
+                    setSelectedChannels((prev) => prev.filter((id) => id !== cat.id && !catChannelIds.includes(id)));
+                  } else {
+                    // Select all channels in this category + category itself
+                    const toAdd = [cat.id, ...catChannelIds].filter((id) => !selectedChannels.includes(id));
+                    setSelectedChannels((prev) => [...prev, ...toAdd]);
+                  }
+                };
+
+                return (
+                  <div key={cat.id} className="p-3 bg-zinc-900/60 border border-zinc-800/80 rounded-2xl space-y-2">
+                    {/* Category Header Row with Selection Toggle */}
+                    <div 
+                      onClick={toggleCategory}
+                      className="flex items-center justify-between p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 cursor-pointer transition select-none"
                     >
                       <div className="flex items-center gap-2">
-                        <Hash className="w-3.5 h-3.5 text-zinc-500" />
-                        <span className="text-zinc-200">{ch.name}</span>
+                        <span className="text-xs">📁</span>
+                        <span className="text-xs font-black text-white uppercase tracking-wider">{cat.name}</span>
+                        <span className="text-[10px] text-zinc-500 font-mono font-normal">({cat.channels.length} channels)</span>
                       </div>
                       <input
                         type="checkbox"
-                        checked={selectedChannels.includes(ch.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedChannels((prev) => [...prev, ch.id]);
-                          } else {
-                            setSelectedChannels((prev) => prev.filter((id) => id !== ch.id));
-                          }
+                        checked={allCatSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someCatSelected && !allCatSelected;
                         }}
+                        onChange={toggleCategory}
                         className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                       />
-                    </label>
-                  ))}
-                </div>
-              ))}
+                    </div>
+
+                    {/* Channels List under this Category */}
+                    <div className="space-y-1 pl-2">
+                      {cat.channels.map((ch) => (
+                        <label
+                          key={ch.id}
+                          className="flex items-center justify-between p-2 rounded-xl hover:bg-zinc-900/80 cursor-pointer text-xs transition"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Hash className="w-3.5 h-3.5 text-zinc-500" />
+                            <span className="text-zinc-300">{ch.name}</span>
+                          </div>
+                          <input
+                            type="checkbox"
+                            checked={selectedChannels.includes(ch.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedChannels((prev) => [...prev, ch.id, cat.id]);
+                              } else {
+                                setSelectedChannels((prev) => prev.filter((id) => id !== ch.id));
+                              }
+                            }}
+                            className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
             <div className="p-4 border-t border-zinc-800 flex justify-end">
               <button
                 onClick={() => setIsChannelsModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider"
+                className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider shadow-lg"
               >
                 Done ({selectedChannels.length} selected)
               </button>
