@@ -57,7 +57,7 @@ export function Dashboard({ onNavigate }) {
             <span>High Fidelity Discord Synchronization</span>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight">
-            Welcome back, {user?.global_name || user?.username || 'hyperionlarp'}!
+            Welcome back, {user ? (user.global_name || user.username) : 'Guest'}!
           </h1>
           <p className="text-white/80 text-sm leading-relaxed">
             Clone complete Discord server architectures including hierarchy roles, categorized channels, custom emojis, permissions overwrites, and message history with one click.
