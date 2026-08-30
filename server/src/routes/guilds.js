@@ -63,20 +63,9 @@ guildsRouter.get('/', async (req, res) => {
     });
   }
 
-  // Fallback if no OAuth user guilds (e.g. demo mode or direct bot cache)
-  const mutualGuilds = botGuilds.map((bg) => ({
-    id: bg.id,
-    name: bg.name,
-    icon: bg.iconURL(),
-    memberCount: bg.memberCount,
-    botPresent: true,
-    rolesCount: bg.roles.cache.size,
-    channelsCount: bg.channels.cache.size,
-  }));
-
-  // Return only real live guilds from bot cache
-  res.json({
-    mutualGuilds,
+  // If no user guilds in session, return empty
+  return res.json({
+    mutualGuilds: [],
     nonBotGuilds: [],
     botInviteUrl: config.discord.botInviteUrl,
   });
