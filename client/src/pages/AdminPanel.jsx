@@ -16,6 +16,7 @@ import {
   Lock
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { CustomSelect } from '../components/CustomSelect';
 
 export function AdminPanel() {
   const { user } = useAuth();
@@ -173,17 +174,17 @@ export function AdminPanel() {
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold uppercase text-zinc-400 mb-1">Duration</label>
-                <select
+                <CustomSelect
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-white"
-                >
-                  <option value="1d">1 Day Key (24 Hours)</option>
-                  <option value="7d">7 Days Key (1 Week)</option>
-                  <option value="30d">30 Days Key (1 Month)</option>
-                  <option value="90d">90 Days Key (3 Months)</option>
-                  <option value="lifetime">Lifetime Access (Permanent)</option>
-                </select>
+                  onChange={(val) => setDuration(val)}
+                  options={[
+                    { value: '1d', label: '1 Day Key (24 Hours)' },
+                    { value: '7d', label: '7 Days Key (1 Week)' },
+                    { value: '30d', label: '30 Days Key (1 Month)' },
+                    { value: '90d', label: '90 Days Key (3 Months)' },
+                    { value: 'lifetime', label: 'Lifetime Access (Permanent)' },
+                  ]}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
