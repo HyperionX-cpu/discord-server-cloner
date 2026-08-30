@@ -59,18 +59,18 @@ adminRouter.get('/bans', requireAdmin, (req, res) => {
 });
 
 // POST /api/admin/bans
-adminRouter.post('/bans', requireAdmin, (req, res) => {
+adminRouter.post('/bans', requireAdmin, async (req, res) => {
   const { discordId, reason } = req.body;
   if (!discordId) {
     return res.status(400).json({ error: 'discordId is required' });
   }
-  keyService.banUser(discordId, reason || 'Banned by admin', req.session.user.username);
+  await keyService.banUser(discordId, reason || 'Banned by admin', req.session.user.username);
   res.json({ success: true });
 });
 
 // DELETE /api/admin/bans/:id
-adminRouter.delete('/bans/:id', requireAdmin, (req, res) => {
-  const success = keyService.unbanUser(req.params.id);
+adminRouter.delete('/bans/:id', requireAdmin, async (req, res) => {
+  const success = await keyService.unbanUser(req.params.id);
   res.json({ success });
 });
 
