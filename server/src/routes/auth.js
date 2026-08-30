@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import { config } from '../config.js';
+import { keyService } from '../services/keyService.js';
 
 export const authRouter = express.Router();
 
@@ -84,14 +85,40 @@ authRouter.get('/callback', async (req, res) => {
 // GET /api/auth/me
 authRouter.get('/me', (req, res) => {
   if (req.session && req.session.user) {
+    const userId = req.session.user.id;
+    const license = keyService.getUserLicense(userId);
+    const isAdmin = keyService.isAdmin(userId);
+
     return res.json({
       authenticated: true,
       user: req.session.user,
+      license,
+      isAdmin,
       botInviteUrl: config.discord.botInviteUrl,
     });
   }
 
   res.status(401).json({ authenticated: false, user: null });
+});
+
+// POST /api/auth/redeem
+authRouter.post('/redeem', (req, res) => {
+  const user = req.session?.user;
+  if (!user) {
+    return res.status(401).json({ error: 'Please log in with Discord first.' });
+  }
+
+  const { key } = req.body;
+  if (!key) {
+    return res.status(400).json({ error: 'License key is required.' });
+  }
+
+  const result = keyService.redeemKey(user.id, user.username, key);
+  if (!result.success) {
+    return res.status(400).json({ error: result.error });
+  }
+
+  res.json({ success: true, license: keyService.getUserLicense(user.id) });
 });
 
 // POST /api/auth/logout
