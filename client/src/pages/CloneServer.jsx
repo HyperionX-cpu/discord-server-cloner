@@ -260,9 +260,9 @@ export function CloneServer() {
         {/* Left Column: Settings, Clear Target, Emojis */}
         <div className="space-y-6">
           {/* Server Identity / Branding */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
-              <Settings2 className="w-4 h-4 text-[#5865F2]" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-zinc-800 pb-3 uppercase tracking-wider">
+              <Settings2 className="w-4 h-4 text-white" />
               <span>Server Identity & Branding</span>
             </div>
 
@@ -275,16 +275,16 @@ export function CloneServer() {
               ].map((item) => (
                 <label
                   key={item.key}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-sm transition-colors"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer text-xs font-semibold transition"
                 >
-                  <span className="text-[#dbdee1]">{item.label}</span>
+                  <span className="text-zinc-200">{item.label}</span>
                   <input
                     type="checkbox"
                     checked={cloneSettings[item.key]}
                     onChange={(e) =>
                       setCloneSettings((prev) => ({ ...prev, [item.key]: e.target.checked }))
                     }
-                    className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                   />
                 </label>
               ))}
@@ -292,25 +292,25 @@ export function CloneServer() {
           </div>
 
           {/* Target Cleanup Section */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Trash2 className="w-4 h-4 text-rose-400" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                <Trash2 className="w-4 h-4 text-white" />
                 <span>Target Server Cleanup</span>
               </div>
               <input
                 type="checkbox"
                 checked={clearTarget}
                 onChange={(e) => setClearTarget(e.target.checked)}
-                className="w-4 h-4 rounded text-rose-500 focus:ring-0 cursor-pointer"
+                className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
               />
             </div>
 
             {clearTarget && (
               <div className="space-y-2 text-xs">
-                <p className="text-amber-400/90 text-xs flex items-center gap-1.5 mb-2 bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                  Existing elements on the target server will be deleted prior to cloning.
+                <p className="text-zinc-400 text-xs flex items-center gap-1.5 mb-2 bg-zinc-900 p-2.5 rounded-xl border border-zinc-800">
+                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-white" />
+                  Existing elements on target server will be deleted prior to cloning.
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {[
@@ -321,7 +321,7 @@ export function CloneServer() {
                   ].map((c) => (
                     <label
                       key={c.key}
-                      className="flex items-center gap-2 p-2 rounded-lg bg-[#1e1f22] text-[#dbdee1] cursor-pointer"
+                      className="flex items-center gap-2 p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs cursor-pointer font-semibold"
                     >
                       <input
                         type="checkbox"
@@ -329,7 +329,7 @@ export function CloneServer() {
                         onChange={(e) =>
                           setClearOptions((prev) => ({ ...prev, [c.key]: e.target.checked }))
                         }
-                        className="rounded text-rose-500 focus:ring-0 cursor-pointer"
+                        className="rounded text-white focus:ring-0 cursor-pointer accent-white"
                       />
                       <span>{c.label}</span>
                     </label>
@@ -340,17 +340,17 @@ export function CloneServer() {
           </div>
 
           {/* Emojis & Stickers */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-[#35373c] pb-3">
-              <Smile className="w-4 h-4 text-yellow-400" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2 text-white font-bold text-sm border-b border-zinc-800 pb-3 uppercase tracking-wider">
+              <Smile className="w-4 h-4 text-white" />
               <span>Emojis & Stickers</span>
             </div>
 
             <div className="space-y-2.5">
-              <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] text-sm cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs cursor-pointer">
                 <div>
-                  <span className="text-[#dbdee1] font-medium block">Custom Emojis</span>
-                  <span className="text-xs text-discord-textMuted">
+                  <span className="text-zinc-200 font-semibold block">Custom Emojis</span>
+                  <span className="text-[11px] text-zinc-500 font-mono">
                     {sourceDetails?.emojisCount || 0} emojis in source server
                   </span>
                 </div>
@@ -358,14 +358,14 @@ export function CloneServer() {
                   type="checkbox"
                   checked={cloneEmojis}
                   onChange={(e) => setCloneEmojis(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                  className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] text-sm cursor-pointer">
+              <label className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-xs cursor-pointer">
                 <div>
-                  <span className="text-[#dbdee1] font-medium block">Custom Stickers</span>
-                  <span className="text-xs text-discord-textMuted">
+                  <span className="text-zinc-200 font-semibold block">Custom Stickers</span>
+                  <span className="text-[11px] text-zinc-500 font-mono">
                     {sourceDetails?.stickersCount || 0} stickers in source server
                   </span>
                 </div>
@@ -373,7 +373,7 @@ export function CloneServer() {
                   type="checkbox"
                   checked={cloneStickers}
                   onChange={(e) => setCloneStickers(e.target.checked)}
-                  className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                  className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                 />
               </label>
             </div>
@@ -383,13 +383,13 @@ export function CloneServer() {
         {/* Center / Right Columns: Roles, Channels, Messages */}
         <div className="lg:col-span-2 space-y-6">
           {/* Roles Configuration */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Layers className="w-4 h-4 text-purple-400" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                <Layers className="w-4 h-4 text-white" />
                 <span>Roles Hierarchy & Permissions</span>
               </div>
-              <span className="text-xs text-discord-textMuted">
+              <span className="text-xs text-zinc-400 font-mono">
                 {sourceDetails?.roles?.length || 0} Roles Available
               </span>
             </div>
@@ -398,10 +398,10 @@ export function CloneServer() {
               <button
                 type="button"
                 onClick={() => setRolesMode('all')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all ${
+                className={`flex-1 py-3 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-all ${
                   rolesMode === 'all'
-                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
-                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                    ? 'bg-white text-black border-white shadow-lg'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
                 Clone All Roles ({sourceDetails?.roles?.length || 0})
@@ -412,14 +412,14 @@ export function CloneServer() {
                   setRolesMode('custom');
                   setIsRolesModalOpen(true);
                 }}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-3 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-2 ${
                   rolesMode === 'custom'
-                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
-                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                    ? 'bg-white text-black border-white shadow-lg'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
                 <span>Select Specific Roles</span>
-                <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${rolesMode === 'custom' ? 'bg-black/20 text-black' : 'bg-white/10 text-white'}`}>
                   {selectedRoles.length}
                 </span>
               </button>
@@ -427,13 +427,13 @@ export function CloneServer() {
           </div>
 
           {/* Channels & Categories Configuration */}
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl p-5 space-y-4">
-            <div className="flex items-center justify-between border-b border-[#35373c] pb-3">
-              <div className="flex items-center gap-2 text-white font-bold text-sm">
-                <Hash className="w-4 h-4 text-emerald-400" />
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2 text-white font-bold text-sm uppercase tracking-wider">
+                <Hash className="w-4 h-4 text-white" />
                 <span>Channels & Categories Architecture</span>
               </div>
-              <span className="text-xs text-discord-textMuted">
+              <span className="text-xs text-zinc-400 font-mono">
                 {sourceDetails?.categories?.reduce((acc, c) => acc + c.channels.length, 0) || 0} Channels
               </span>
             </div>
@@ -442,10 +442,10 @@ export function CloneServer() {
               <button
                 type="button"
                 onClick={() => setChannelsMode('all')}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all ${
+                className={`flex-1 py-3 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-all ${
                   channelsMode === 'all'
-                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
-                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                    ? 'bg-white text-black border-white shadow-lg'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
                 Clone All Channels & Categories
@@ -456,14 +456,14 @@ export function CloneServer() {
                   setChannelsMode('custom');
                   setIsChannelsModalOpen(true);
                 }}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-semibold border transition-all flex items-center justify-center gap-2 ${
+                className={`flex-1 py-3 px-4 rounded-2xl text-xs font-bold uppercase tracking-wider border transition-all flex items-center justify-center gap-2 ${
                   channelsMode === 'custom'
-                    ? 'bg-[#5865F2] text-white border-[#5865F2]'
-                    : 'bg-[#1e1f22] text-[#dbdee1] border-[#35373c] hover:bg-[#232428]'
+                    ? 'bg-white text-black border-white shadow-lg'
+                    : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-white'
                 }`}
               >
                 <span>Select Channels</span>
-                <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${channelsMode === 'custom' ? 'bg-black/20 text-black' : 'bg-white/10 text-white'}`}>
                   {selectedChannels.length}
                 </span>
               </button>
@@ -551,35 +551,35 @@ export function CloneServer() {
 
       {/* Confirmation Modal */}
       {confirmModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-amber-400">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <AlertTriangle className="w-5 h-5" />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150 text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-white text-black flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-black" />
               </div>
               <div>
                 <h3 className="font-bold text-white text-base">Confirm Clone Operation</h3>
-                <p className="text-xs text-discord-textMuted">This will modify target server contents</p>
+                <p className="text-xs text-zinc-400">This will modify target server contents</p>
               </div>
             </div>
 
-            <div className="bg-[#1e1f22] p-4 rounded-xl space-y-2 text-xs">
+            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-2xl space-y-2 text-xs">
               <div className="flex justify-between">
-                <span className="text-discord-textMuted">Source:</span>
+                <span className="text-zinc-400">Source:</span>
                 <span className="font-semibold text-white truncate max-w-[200px]">
                   {sourceGuild?.name}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-discord-textMuted">Target:</span>
+                <span className="text-zinc-400">Target:</span>
                 <span className="font-semibold text-white truncate max-w-[200px]">
                   {targetGuild?.name}
                 </span>
               </div>
               {clearTarget && (
-                <div className="flex justify-between text-rose-400 font-semibold pt-1 border-t border-[#2b2d31]">
+                <div className="flex justify-between text-white font-semibold pt-1 border-t border-zinc-800">
                   <span>Target Server Wipe:</span>
-                  <span>Active</span>
+                  <span className="text-red-400">Active</span>
                 </div>
               )}
             </div>
@@ -588,14 +588,14 @@ export function CloneServer() {
               <button
                 type="button"
                 onClick={() => setConfirmModal(false)}
-                className="flex-1 py-2.5 rounded-xl bg-[#1e1f22] hover:bg-[#35373c] text-white text-sm font-semibold transition-colors"
+                className="flex-1 py-3 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-bold transition-colors border border-zinc-800"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleStartClone}
-                className="flex-1 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white text-sm font-bold transition-all shadow-lg shadow-[#5865F2]/30"
+                className="flex-1 py-3 rounded-2xl bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider transition-all shadow-xl"
               >
                 Confirm & Start
               </button>
@@ -606,13 +606,13 @@ export function CloneServer() {
 
       {/* Roles Selection Modal */}
       {isRolesModalOpen && sourceDetails && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="p-4 border-b border-[#35373c] flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm">Select Roles to Clone</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl text-white">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">Select Roles to Clone</h3>
               <button
                 onClick={() => setIsRolesModalOpen(false)}
-                className="p-1 rounded text-discord-textMuted hover:text-white"
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -621,12 +621,12 @@ export function CloneServer() {
               {sourceDetails.roles.map((role) => (
                 <label
                   key={role.id}
-                  className="flex items-center justify-between p-2.5 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-xs"
+                  className="flex items-center justify-between p-3 rounded-2xl bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer text-xs"
                 >
                   <div className="flex items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: role.color !== '#000000' ? role.color : '#949ba4' }}
+                      style={{ backgroundColor: role.color !== '#000000' ? role.color : '#ffffff' }}
                     />
                     <span className="font-semibold text-white">{role.name}</span>
                   </div>
@@ -640,15 +640,15 @@ export function CloneServer() {
                         setSelectedRoles((prev) => prev.filter((id) => id !== role.id));
                       }
                     }}
-                    className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                    className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                   />
                 </label>
               ))}
             </div>
-            <div className="p-4 border-t border-[#35373c] flex justify-end">
+            <div className="p-4 border-t border-zinc-800 flex justify-end">
               <button
                 onClick={() => setIsRolesModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-[#5865F2] text-white text-xs font-bold"
+                className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider"
               >
                 Done ({selectedRoles.length} selected)
               </button>
@@ -659,13 +659,13 @@ export function CloneServer() {
 
       {/* Channels Selection Modal */}
       {isChannelsModalOpen && sourceDetails && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#2b2d31] border border-[#35373c] rounded-2xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="p-4 border-b border-[#35373c] flex items-center justify-between">
-              <h3 className="font-bold text-white text-sm">Select Channels & Categories</h3>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#121215] border border-zinc-800 rounded-3xl max-w-lg w-full max-h-[80vh] flex flex-col shadow-2xl text-white">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="font-bold text-white text-sm uppercase tracking-wider">Select Channels & Categories</h3>
               <button
                 onClick={() => setIsChannelsModalOpen(false)}
-                className="p-1 rounded text-discord-textMuted hover:text-white"
+                className="p-1 rounded-lg text-zinc-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -673,17 +673,17 @@ export function CloneServer() {
             <div className="p-4 overflow-y-auto flex-1 space-y-4">
               {sourceDetails.categories.map((cat) => (
                 <div key={cat.id} className="space-y-1.5">
-                  <div className="text-[11px] font-bold text-discord-textMuted uppercase tracking-wider px-2">
+                  <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider px-2">
                     📁 {cat.name}
                   </div>
                   {cat.channels.map((ch) => (
                     <label
                       key={ch.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-[#1e1f22] hover:bg-[#232428] cursor-pointer text-xs ml-2"
+                      className="flex items-center justify-between p-2.5 rounded-2xl bg-zinc-900 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer text-xs ml-2"
                     >
                       <div className="flex items-center gap-2">
-                        <Hash className="w-3.5 h-3.5 text-discord-textMuted" />
-                        <span className="text-[#dbdee1]">{ch.name}</span>
+                        <Hash className="w-3.5 h-3.5 text-zinc-500" />
+                        <span className="text-zinc-200">{ch.name}</span>
                       </div>
                       <input
                         type="checkbox"
@@ -695,17 +695,17 @@ export function CloneServer() {
                             setSelectedChannels((prev) => prev.filter((id) => id !== ch.id));
                           }
                         }}
-                        className="w-4 h-4 rounded text-[#5865F2] focus:ring-0 cursor-pointer"
+                        className="w-4 h-4 rounded text-white focus:ring-0 cursor-pointer accent-white"
                       />
                     </label>
                   ))}
                 </div>
               ))}
             </div>
-            <div className="p-4 border-t border-[#35373c] flex justify-end">
+            <div className="p-4 border-t border-zinc-800 flex justify-end">
               <button
                 onClick={() => setIsChannelsModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-[#5865F2] text-white text-xs font-bold"
+                className="px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-black uppercase tracking-wider"
               >
                 Done ({selectedChannels.length} selected)
               </button>
