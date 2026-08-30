@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import axios from 'axios';
+import { config } from '../config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -8,7 +10,50 @@ const DATA_FILE = path.resolve(__dirname, '../../keys_data.json');
 
 const OWNER_DISCORD_ID = "1240169071287205950";
 
+let memoryCache = null;
+
+// Helper to push keys_data.json to GitHub repository asynchronously in background
+async function syncToGitHub(data) {
+  if (!config.githubToken || !config.githubRepo) return;
+  try {
+    const jsonStr = JSON.stringify(data, null, 2);
+    const contentB64 = Buffer.from(jsonStr).toString('base64');
+    const url = `https://api.github.com/repos/${config.githubRepo}/contents/keys_data.json`;
+    
+    // Get existing sha
+    let sha = null;
+    try {
+      const getRes = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${config.githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+      sha = getRes.data?.sha;
+    } catch (_) {}
+
+    const payload = {
+      message: 'Auto-save keys database',
+      content: contentB64,
+      branch: 'main',
+    };
+    if (sha) payload.sha = sha;
+
+    await axios.put(url, payload, {
+      headers: {
+        Authorization: `Bearer ${config.githubToken}`,
+        Accept: 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json',
+      },
+    });
+    console.log('[AUTO-SYNC] Successfully synchronized keys_data.json to GitHub repository.');
+  } catch (err) {
+    console.error('[AUTO-SYNC ERROR]', err.response?.data?.message || err.message);
+  }
+}
+
 function loadData() {
+  if (memoryCache) return memoryCache;
   if (!fs.existsSync(DATA_FILE)) {
     const initial = {
       keys: {},
@@ -16,27 +61,32 @@ function loadData() {
       bannedUsers: {},
     };
     fs.writeFileSync(DATA_FILE, JSON.stringify(initial, null, 2));
+    memoryCache = initial;
     return initial;
   }
   try {
     const parsed = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-    // Remove any legacy master key if it exists
     if (parsed.keys?.["VEIL-OWNER-LIFETIME-ACCESS"]) {
       delete parsed.keys["VEIL-OWNER-LIFETIME-ACCESS"];
       fs.writeFileSync(DATA_FILE, JSON.stringify(parsed, null, 2));
     }
+    memoryCache = parsed;
     return parsed;
   } catch {
-    return { keys: {}, users: {}, bannedUsers: {} };
+    memoryCache = { keys: {}, users: {}, bannedUsers: {} };
+    return memoryCache;
   }
 }
 
 function saveData(data) {
+  memoryCache = data;
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
   } catch (err) {
     console.error('[KEY STORE SAVE ERROR]', err);
   }
+  // Automatically persist to GitHub repository so future builds have all keys intact
+  syncToGitHub(data);
 }
 
 export function generateKeyString(prefix = 'VEIL') {
@@ -123,6 +173,18 @@ export const keyService = {
   getAllKeys() {
     const data = loadData();
     return Object.values(data.keys || {});
+  },
+
+  getFullData() {
+    return loadData();
+  },
+
+  importFullData(newData) {
+    if (newData && typeof newData === 'object') {
+      saveData(newData);
+      return true;
+    }
+    return false;
   },
 
   getUserLicense(discordId) {
