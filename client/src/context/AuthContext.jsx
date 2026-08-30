@@ -25,15 +25,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       console.warn('Auth check failed:', err.message);
-      // Fallback demo user for local convenience
-      setUser({
-        id: '123456789012345678',
-        username: 'hyperionlarp',
-        discriminator: '0',
-        global_name: 'hyperionlarp',
-        avatar: 'https://cdn.discordapp.com/embed/avatars/0.png',
-        isDemo: true,
-      });
+      setUser(null);
     } finally {
       setLoading(false);
     }
